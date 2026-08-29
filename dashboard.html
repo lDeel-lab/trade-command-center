@@ -386,7 +386,7 @@ function aggregateQuarter(monthly) {
 
 async function fetchKlines(sym, tf) {
   if (MOCK) return mockCandles(sym, tf);
-  const limit = tf.key === "Q" ? 60 : 200;
+  const limit = 200;   // Q aggregates monthly → 200 months ≈ 66 quarterly bars
   const res = await apiGet(`/v5/market/kline?category=spot&symbol=${sym}&interval=${tf.iv}&limit=${limit}`);
   let candles = rowsToCandles(res.list);
   if (tf.key === "Q") candles = aggregateQuarter(candles);
@@ -1545,19 +1545,27 @@ function renderDetail() {
       `⚠ MIXED profile — timeframe groups conflict (${sel.prof.note}). This is inspection, not a trade.`));
   }
 
-  /* TV live chart */
-  const tvbox = el("div", "tvbox");
-  const theme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
-  const ivMap = {"5m":"5","15m":"15","30m":"30","1H":"60","4H":"240","D":"D","W":"W","Q":"M"};
-  const ifr = document.createElement("iframe");
-  ifr.title = "TradingView live chart";
-  ifr.src = "https://s.tradingview.com/widgetembed/?symbol=" + encodeURIComponent(tvSym) +
-    "&interval=" + (ivMap[tfKey] || "60") + "&theme=" + theme +
-    "&style=1&hidesidetoolbar=0&hidetoptoolbar=0&withdateranges=1&saveimage=0&locale=en";
-  tvbox.appendChild(ifr);
-  p.appendChild(tvbox);
-  p.appendChild(el("div", "legend",
-    "Live TradingView chart (Bybit feed). Use “Open in TradingView” to load your own SMC toolkit on it."));
+  /* TV live chart — NSE/BSE data is not licensed for anonymous embeds */
+  const noEmbed = /^(NSE|BSE):/.test(tvSym);
+  if (noEmbed) {
+    p.appendChild(el("div", "legend",
+      "🇮🇳 Indian exchange data can't be shown in embedded charts (NSE licensing). " +
+      "The annotated system chart below has the full picture, and “Open in TradingView” " +
+      "shows the live NSE chart in your own logged-in account."));
+  } else {
+    const tvbox = el("div", "tvbox");
+    const theme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+    const ivMap = {"5m":"5","15m":"15","30m":"30","1H":"60","4H":"240","D":"D","W":"W","Q":"M"};
+    const ifr = document.createElement("iframe");
+    ifr.title = "TradingView live chart";
+    ifr.src = "https://s.tradingview.com/widgetembed/?symbol=" + encodeURIComponent(tvSym) +
+      "&interval=" + (ivMap[tfKey] || "60") + "&theme=" + theme +
+      "&style=1&hidesidetoolbar=0&hidetoptoolbar=0&withdateranges=1&saveimage=0&locale=en";
+    tvbox.appendChild(ifr);
+    p.appendChild(tvbox);
+    p.appendChild(el("div", "legend",
+      "Live TradingView chart. Use “Open in TradingView” to load your own SMC toolkit on it."));
+  }
 
   /* timeframe switch + annotated chart */
   const tfrow = el("div", "tfrow");
