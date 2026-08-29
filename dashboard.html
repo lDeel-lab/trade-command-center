@@ -173,6 +173,58 @@ footer{margin-top:18px;color:var(--muted);font-size:11.5px;border-top:1px solid 
 <div class="unitabs" id="unitabs"></div>
 <div class="unierr" id="unierr"></div>
 
+<section id="view-logic" hidden>
+  <div class="panel" style="max-width:900px">
+    <h2>📖 How every recommendation is computed — the full logic, nothing hidden</h2>
+
+    <h3 class="dh3">Step 1 — Score each timeframe (−5 … +5)</h3>
+    <p class="dp">For every instrument on every timeframe, points are added up:
+    market structure from the swing sequence (higher-highs &amp; higher-lows +2, lower-highs &amp; lower-lows −2, mixed ±1);
+    price above the 50EMA +1, below −1; 50EMA above the 200EMA +0.5;
+    MACD histogram positive +1, negative −1; RSI above 55 +1, below 45 −1;
+    a Bollinger squeeze that just fired adds ±1 in its direction; a volume anomaly (&gt;2σ) adds ±0.5 with the candle.
+    The total is clamped to ±5 — that's the number in each matrix cell.</p>
+
+    <h3 class="dh3">Step 2 — Combine timeframe groups → trade type &amp; holding period</h3>
+    <p class="dp">Timeframes form three groups: <b>LTF</b> (5m/15m/30m), <b>MTF</b> (1H/4H), <b>HTF</b> (D/W/Q).
+    The <i>combination</i> decides everything:
+    all three agree → <b>🎯 ALIGNED</b> (hold days→weeks);
+    MTF+HTF agree while LTF pulls against → <b>🌊 SWING</b> (2–10 days — the LTF dip IS the entry);
+    LTF+MTF agree without HTF backing → <b>⚡ INTRADAY</b> (hours–1 day, conviction capped at 65 because it fights the bigger trend);
+    only HTF strong → <b>🗓 POSITION</b> (2–8 weeks, building);
+    anything conflicting → MIXED, never shown as a trade.</p>
+
+    <h3 class="dh3">Step 3 — Conviction (0–100)</h3>
+    <p class="dp">Starts from the strength of the group agreement, then adjusts:
+    a strategy trigger agreeing with the profile +8; fundamentals score (supply math for crypto, valuation/growth/quality for stocks) adds up to ±9 — asymmetric, since weak fundamentals help a short;
+    <b>extension guard:</b> price stretched &gt;2.2×ATR beyond the 50EMA in the trade direction −6, &gt;3×ATR −12 with a "chasing — wait for the pullback" warning. That guard exists precisely for the all-time-high problem: right direction, wrong moment.
+    Below 55 is never displayed; the picks list defaults to ≥70.</p>
+
+    <h3 class="dh3">Step 4 — The trade plan</h3>
+    <p class="dp">Entry prefers a <b>pullback into an unfilled fair value gap</b> behind price (within 2 ATR); otherwise at market ±0.25 ATR.
+    Stop goes <b>beyond the liquidity pool</b> (clustered equal highs/lows) plus a 0.35 ATR buffer — outside the stop-hunt zone — falling back to 1.5×ATR when no clean pool exists.
+    TP1/TP2/TP3 sit at 1R/2R/3R of the actual stop distance. The suggested management: a third off at each target, stop to break-even after TP1.
+    Position size always derives from the stop so a full stop-out costs exactly your chosen risk % — <b>being wrong is designed to cost one small loss, never "getting stuck for ages". If the stop is hit, the trade is over.</b></p>
+
+    <h3 class="dh3">The rubber-band meter (MA distance)</h3>
+    <p class="dp">Every instrument's detail view shows its distance from EMA 9, EMA 21, SMA 50, SMA 100 and SMA 200 —
+    in %, in ATR multiples (so volatile and quiet assets are comparable), and as a <b>historical percentile</b>:
+    how rare today's stretch is versus that instrument's own last 200 bars. p90+ in the trade's direction means the
+    band is taut and mean-reversion risk is elevated — the case text warns you, and the extension guard has already
+    docked conviction. Percentile measures rarity, not destiny: strong trends can stay extended.</p>
+
+    <h3 class="dh3">What this system does NOT know — read this honestly</h3>
+    <p class="dp">It is a momentum/structure system: it will always lean with the trend, which means it will sometimes flag strength near tops — the extension guard and the against-the-trade section are the counterweights, not a cure.
+    Conviction measures how strongly the evidence <i>aligns</i>, not a verified win-rate (that calibrates over weeks of recorded picks).
+    It doesn't know earnings dates, insider flows, or idiosyncratic company risk beyond the fundamentals score and tagged news.
+    And nothing here is financial advice — it is a systematic second opinion that always tells you where it's wrong (the invalidation level) before you enter.</p>
+  </div>
+</section>
+
+<section id="view-perf" hidden>
+  <div class="panel" id="perfbox"></div>
+</section>
+
 <section id="view-news" hidden>
   <div class="panel">
     <h2>📰 Global finance news — hierarchically tagged</h2>
@@ -327,6 +379,19 @@ async function loadNews() {
   }
 }
 
+const JOURNALD = {data: null, err: null};
+async function loadJournal() {
+  try {
+    const r = await fetch(DATA_BASE + "journal.json", {cache: "no-store"});
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    JOURNALD.data = await r.json(); JOURNALD.err = null;
+  } catch (e) {
+    JOURNALD.err = location.protocol === "file:"
+      ? "The journal is built by the backend — open the hosted version."
+      : "No journal yet — it starts recording after the first backend cycle with the journal step deployed.";
+  }
+}
+
 async function loadFundamentalsX() {
   try {
     const r = await fetch(DATA_BASE + "fundamentals.json", {cache: "no-store"});
@@ -386,7 +451,7 @@ function aggregateQuarter(monthly) {
 
 async function fetchKlines(sym, tf) {
   if (MOCK) return mockCandles(sym, tf);
-  const limit = 200;   // Q aggregates monthly → 200 months ≈ 66 quarterly bars
+  const limit = 300;   // enough history for SMA 200 + its percentile; Q aggregates monthly
   const res = await apiGet(`/v5/market/kline?category=spot&symbol=${sym}&interval=${tf.iv}&limit=${limit}`);
   let candles = rowsToCandles(res.list);
   if (tf.key === "Q") candles = aggregateQuarter(candles);
@@ -418,7 +483,7 @@ function mockCandles(sym, tf) {
   const rnd = mulberry(seed);
   const base = {BTCUSDT:109000, ETHUSDT:4400, SOLUSDT:210}[sym] || (rnd()*90+2);
   const drift = (rnd()-0.42) * 0.004;
-  const n = tf.key === "Q" ? 24 : 200;
+  const n = tf.key === "Q" ? 36 : 300;
   const stepMs = {5:3e5,15:9e5,30:18e5,60:36e5,240:144e5,D:864e5,W:6048e5,M:26e8}[tf.iv];
   let px = base, out = [];
   for (let i = 0; i < n; i++) {
@@ -433,6 +498,15 @@ function mockCandles(sym, tf) {
 }
 
 /* ============ INDICATORS ============ */
+function smaArr(vals, nn) {
+  const out = []; let s = 0;
+  for (let i = 0; i < vals.length; i++) {
+    s += vals[i];
+    if (i >= nn) s -= vals[i - nn];
+    out.push(i >= nn - 1 ? s / nn : vals[i]);
+  }
+  return out;
+}
 function emaArr(vals, n) {
   const k = 2/(n+1), out = [vals[0]];
   for (let i = 1; i < vals.length; i++) out.push(vals[i]*k + out[i-1]*(1-k));
@@ -614,6 +688,27 @@ function computeFeatures(candles) {
   const volZ = (vols[n-1]-vm)/vsd;
   const volDir = candles[n-1].c >= candles[n-1].o ? 1 : -1;
 
+  /* distance from the classic MA set — %, ×ATR, and historical percentile
+     (how rare today's stretch is vs the last 200 bars of this instrument) */
+  const maDist = [];
+  const maDefs = [
+    ["EMA 9", emaArr(closes, 9), 21], ["EMA 21", emaArr(closes, 21), 34],
+    ["SMA 50", smaArr(closes, 50), 60], ["SMA 100", smaArr(closes, 100), 110],
+    ["SMA 200", smaArr(closes, 200), 210],
+  ];
+  for (const [label, arr, minBars] of maDefs) {
+    if (n < minBars) continue;
+    const start = Math.max(minBars - 10, n - 200);
+    const histA = [];
+    for (let i = start; i < n; i++)
+      histA.push(Math.abs((closes[i] - arr[i]) / (atr[i] || 1)));
+    const curAtr = (closes[n-1] - arr[n-1]) / (atr[n-1] || 1);
+    const pctl = histA.length ? Math.round(100 *
+      histA.filter(x => x <= Math.abs(curAtr)).length / histA.length) : null;
+    maDist.push({label, value: arr[n-1],
+      pct: (closes[n-1] / arr[n-1] - 1) * 100, atr: curAtr, pctl});
+  }
+
   const piv = pivots(candles);
   const st = structure(candles, piv);
   const fv = fvgs(candles);
@@ -638,6 +733,8 @@ function computeFeatures(candles) {
     rsi: rsi[n-1], atr: atr[n-1], hist: hist[n-1],
     e20: e20[n-1], e50: e50[n-1], e200: e200[n-1],
     aboveE50: c > e50[n-1], e50aboveE200: e50[n-1] > e200[n-1],
+    stretch: (c - e50[n-1]) / (atr[n-1] || 1),   // extension in ATRs beyond the 50EMA
+    maDist,
     bwPct: bw[n-1] != null && bwWin.length ?
       bwWin.filter(x=>x<=bw[n-1]).length / bwWin.length : null,
     inSqueeze, released, volZ, volDir,
@@ -718,6 +815,17 @@ function mtfProfile(sym) {
   conv = Math.max(0, Math.min(100, conv));
   return {type, dir, conv, note, gL, gM, gH, meta: TYPEMETA[type],
     tier: conv >= 70 ? "HIGH" : conv >= 55 ? "MEDIUM" : "LOW"};
+}
+
+/* extension guard: entering in the trade direction when price is already
+   stretched far beyond the 50EMA is chasing — penalize conviction and say so */
+function extensionCheck(sym, tfKey, dir) {
+  const f = DATA[sym] && DATA[sym][tfKey] && DATA[sym][tfKey].feats;
+  if (!f || f.stretch == null) return null;
+  const s = f.stretch * dir;   // positive = stretched in the trade direction
+  if (s > 3) return {pen: 12, tag: `⚠ extended ${s.toFixed(1)}×ATR past 50EMA — chasing; wait for the pullback`};
+  if (s > 2.2) return {pen: 6, tag: `stretched ${s.toFixed(1)}×ATR past 50EMA — late entry risk`};
+  return null;
 }
 
 /* rough time-to-TP2 estimate: TP2 sits ~3 ATR out; net progress ~0.4 ATR/bar */
@@ -878,8 +986,10 @@ function scanStrategies() {
             ? Math.min(100, prof.conv + 8)          // trigger + MTF agreement
             : Math.min(45, Math.round(prof.conv * 0.5)); // trigger against MTF = noise
           const fs = fundScore(sym);
-          conv = Math.round(Math.max(0, Math.min(100,
-            conv + fs * 3 * (m.dir === 1 ? 1 : -0.5))));
+          conv = conv + fs * 3 * (m.dir === 1 ? 1 : -0.5);
+          const ext = extensionCheck(sym, tfKey, m.dir);
+          if (ext) { conv -= ext.pen; m.tags.push(ext.tag); }
+          conv = Math.round(Math.max(0, Math.min(100, conv)));
           out[st.key].push({sym, tfKey, dir: m.dir, tags: m.tags,
             plan: buildPlan(sym, tfKey, m.dir), conv, prof, strat: st});
           break;  // first matching TF wins per symbol
@@ -905,10 +1015,13 @@ function alignmentPicks() {
       .map(([k, g]) => k + (g >= 0 ? "+" : "−") + Math.round(Math.abs(g) * 100))
       .join(" ");
     const fs = fundScore(sym);
-    const conv = Math.round(Math.max(0, Math.min(100,
-      p.conv + fs * 3 * (p.dir === 1 ? 1 : -0.5))));
+    let conv = p.conv + fs * 3 * (p.dir === 1 ? 1 : -0.5);
+    const tags = [p.note, gTxt];
+    const ext = extensionCheck(sym, tfKey, p.dir);
+    if (ext) { conv -= ext.pen; tags.push(ext.tag); }
+    conv = Math.round(Math.max(0, Math.min(100, conv)));
     out.push({sym, tfKey, dir: p.dir, conv, prof: p, strat: ALIGN_STRAT,
-      tags: [p.note, gTxt], plan: buildPlan(sym, tfKey, p.dir)});
+      tags, plan: buildPlan(sym, tfKey, p.dir)});
   }
   return out.sort((a, b) => b.conv - a.conv);
 }
@@ -951,6 +1064,14 @@ function buildCase(sym, tfKey, dir) {
   if (opp.length) against.push(`${opp.join(", ")} disagree with the ${dirWord}`);
   if (dir === 1 && f.rsi > 70) against.push(`RSI ${f.rsi.toFixed(0)} is overbought — chasing risk`);
   if (dir === -1 && f.rsi < 30) against.push(`RSI ${f.rsi.toFixed(0)} is oversold — bounce risk`);
+  if (f.stretch != null && f.stretch * dir > 2.2)
+    against.push(`price is ${(f.stretch * dir).toFixed(1)}×ATR beyond the 50EMA — extended; ` +
+      `a better entry is the pullback, and near highs the risk of buying the top of the leg is real`);
+  const taut = (f.maDist || []).filter(m => m.pctl != null && m.pctl >= 90 &&
+    Math.sign(m.atr) === dir);
+  if (taut.length)
+    against.push(`rubber-band warning: distance from ${taut.map(m => m.label).join(" & ")} ` +
+      `is at the ${taut[0].pctl}th percentile of the last 200 bars — mean-reversion risk is elevated`);
   if (cv && !cv.htfAligned) against.push("4H and Daily are not aligned — this is a lower-timeframe trade only");
   paras.push("Against the trade: " + (against.length ? against.join("; ") + "." :
     "no strong counter-signal right now — invalidation is the level below."));
@@ -1205,18 +1326,26 @@ let sel = null;                 // {sym, tfKey, dir, plan, stratName}
 let account = 10000, riskPct = 1;
 
 /* universe tab bar (News is a pseudo-tab) */
+let logicView = false, perfView = false;
 function renderUniTabs() {
   const bar = $("#unitabs");
   bar.textContent = "";
-  UNIVERSES.concat([{key: "__news", label: "📰 News"}]).forEach(u => {
+  UNIVERSES.concat([{key: "__news", label: "📰 News"},
+                    {key: "__perf", label: "📊 Performance"},
+                    {key: "__logic", label: "📖 Logic"}]).forEach(u => {
     const b = el("button", null, u.label);
     b.type = "button";
-    b.setAttribute("aria-selected",
-      (u.key === "__news" ? newsView : (!newsView && activeUni === u.key)) ? "true" : "false");
+    const sel = u.key === "__news" ? newsView :
+      u.key === "__logic" ? logicView :
+      u.key === "__perf" ? perfView :
+      (!newsView && !logicView && !perfView && activeUni === u.key);
+    b.setAttribute("aria-selected", sel ? "true" : "false");
     b.addEventListener("click", async () => {
-      if (u.key === "__news") { newsView = true; }
+      newsView = logicView = perfView = false;
+      if (u.key === "__news") newsView = true;
+      else if (u.key === "__logic") logicView = true;
+      else if (u.key === "__perf") perfView = true;
       else {
-        newsView = false;
         activeUni = u.key;
         if (u.key !== "crypto" && !(UNI_STATE[u.key] && UNI_STATE[u.key].loadedAt)) {
           renderUniTabs(); showUniState();
@@ -1224,12 +1353,87 @@ function renderUniTabs() {
           detectEvents();
         }
       }
-      renderUniTabs(); showUniState(); renderAll(); renderNewsView();
+      renderUniTabs(); showUniState(); renderAll(); renderNewsView(); renderPerf();
     });
     bar.appendChild(b);
   });
-  $("#view-market").hidden = newsView;
+  const any = newsView || logicView || perfView;
+  $("#view-market").hidden = any;
   $("#view-news").hidden = !newsView;
+  $("#view-logic").hidden = !logicView;
+  $("#view-perf").hidden = !perfView;
+}
+
+/* ============ PERFORMANCE TAB ============ */
+function renderPerf() {
+  if (!perfView) return;
+  const box = $("#perfbox");
+  box.textContent = "";
+  box.appendChild(el("h2", null,
+    "📊 Performance — every ≥70-conviction pick the system has made, tracked to its outcome"));
+  const j = JOURNALD.data;
+  if (!j) { box.appendChild(el("div", "conf", "ℹ " + (JOURNALD.err || "Loading…"))); return; }
+  const closed = j.closed || [], open = j.open || [];
+  const wins = closed.filter(c => c.r > 0);
+  const sumR = closed.reduce((a, c) => a + (c.r || 0), 0);
+  const tiles = el("div", "lvls");
+  [["Picks tracked", String(closed.length + open.length)],
+   ["Closed", String(closed.length)],
+   ["Win rate", closed.length ? (wins.length / closed.length * 100).toFixed(0) + "%" : "—"],
+   ["Avg R / trade", closed.length ? (sumR / closed.length).toFixed(2) + "R" : "—"],
+   ["Total R", (sumR >= 0 ? "+" : "") + sumR.toFixed(1) + "R"],
+   ["At 0.5% risk each", closed.length ? (sumR * 0.5 >= 0 ? "+" : "") +
+      (sumR * 0.5).toFixed(1) + "% of account" : "—"],
+  ].forEach(([l, v]) => {
+    const d = el("div");
+    d.appendChild(el("span", "l", l));
+    d.appendChild(el("span", null, v));
+    tiles.appendChild(d);
+  });
+  box.appendChild(tiles);
+  box.appendChild(el("div", "legend",
+    "Outcomes use the thirds model the tickets recommend: ⅓ off at each TP, stop to " +
+    "break-even after TP1. SL = −1R · BE = +0.33R · TP2 then stopped = +1R · TP3 = +2R. " +
+    "Below ~30 closed trades these numbers are noise, not truth — let it accumulate " +
+    "before drawing conclusions. This is exactly the evidence that calibrates conviction."));
+  /* calibration by conviction bucket + by type */
+  const bucketTbl = (title, keyFn) => {
+    const groups = {};
+    closed.forEach(c => { const k = keyFn(c); (groups[k] = groups[k] || []).push(c); });
+    if (!Object.keys(groups).length) return;
+    box.appendChild(el("h3", "dh3", title));
+    const t = el("table", "ticket");
+    const hr = el("tr");
+    ["Group", "Closed", "Win rate", "Avg R"].forEach(h => {
+      const td = el("td", null, h); td.style.color = "var(--muted)"; hr.appendChild(td); });
+    t.appendChild(hr);
+    Object.keys(groups).sort().forEach(k => {
+      const g = groups[k], w = g.filter(c => c.r > 0).length;
+      const avg = g.reduce((a, c) => a + (c.r || 0), 0) / g.length;
+      const tr = el("tr");
+      [k, String(g.length), (w / g.length * 100).toFixed(0) + "%",
+       (avg >= 0 ? "+" : "") + avg.toFixed(2) + "R"].forEach(v =>
+        tr.appendChild(el("td", null, v)));
+      t.appendChild(tr);
+    });
+    box.appendChild(t);
+  };
+  bucketTbl("Calibration by conviction", c =>
+    c.conv >= 90 ? "90–100" : c.conv >= 80 ? "80–89" : "70–79");
+  bucketTbl("By trade type", c => c.type || "—");
+  bucketTbl("By asset class", c => c.cls || "—");
+  /* open + recent closed lists */
+  const list = (title, rows, fmtRow) => {
+    if (!rows.length) return;
+    box.appendChild(el("h3", "dh3", title));
+    rows.forEach(r => box.appendChild(el("div", "dp", fmtRow(r))));
+  };
+  list("Open (being tracked)", open.slice(-15).reverse(), p =>
+    `${p.dir === 1 ? "🟢" : "🔴"} ${p.name} · ${p.strat} · ${p.tfKey} · conv ${p.conv} · ` +
+    `entry ${fmt(p.entry)} · SL ${fmt(p.sl)} · TPs hit: ${p.tpHit || 0} · since ${ukTime(p.ts)} UK`);
+  list("Recently closed", closed.slice(-15).reverse(), c =>
+    `${c.r > 0 ? "✅" : c.r < 0 ? "❌" : "➖"} ${c.name} ${c.dir === 1 ? "long" : "short"} · ` +
+    `${c.outcome} → ${c.r >= 0 ? "+" : ""}${c.r}R · conv ${c.conv} · ${c.strat}`);
 }
 
 function showUniState() {
@@ -1317,7 +1521,27 @@ function renderPicks() {
         ($("#hiconv").checked ? " Untick the box to see the 55–69 watchlist." : "")));
     return;
   }
-  list.slice(0, 8).forEach(m => {
+  /* correlation / heat guard: clustered same-direction picks are ONE bet */
+  const shown = list.slice(0, 8), buckets = {};
+  shown.forEach(m => {
+    const meta = INSTR[m.sym] || {};
+    const b = (meta.cls === "crypto" ? "crypto" : meta.cls === "fx" ? "FX" :
+      meta.cls === "commodity" ? "commodity·" + (meta.sector || "") :
+      meta.cls === "index" ? "indices" : "stocks·" + (meta.sector || "")) +
+      (m.dir === 1 ? " longs" : " shorts");
+    (buckets[b] = buckets[b] || []).push(iName(m.sym));
+  });
+  for (const [b, names] of Object.entries(buckets)) {
+    const lim = b.startsWith("crypto") ? 2 : 3;
+    if (names.length >= lim) {
+      const w = el("div", "conf",
+        `⚠ Concentration: ${names.length} correlated picks (${b}: ${names.join(", ")}). ` +
+        `They will likely win or lose together — size them as ONE position, not ${names.length}.`);
+      w.style.color = "var(--warn)"; w.style.marginBottom = "8px";
+      box.appendChild(w);
+    }
+  }
+  shown.forEach(m => {
     const name = iName(m.sym);
     const side = m.dir === 1 ? "LONG" : "SHORT";
     const card = el("button", "pick");
@@ -1579,6 +1803,43 @@ function renderDetail() {
   p.appendChild(tfrow);
   const cell = DATA[sym] && DATA[sym][sel.tfKey];
   if (cell && cell.feats) p.appendChild(annotatedChart(cell, name, sel.tfKey));
+
+  /* MA distance / rubber-band meter */
+  if (cell && cell.feats && cell.feats.maDist && cell.feats.maDist.length) {
+    p.appendChild(el("h3", "dh3",
+      `Distance from moving averages (${sel.tfKey}) — the rubber-band meter`));
+    const t = el("table", "ticket");
+    const hr = el("tr");
+    ["MA", "Level", "Distance", "×ATR", "How rare is this stretch?"].forEach(h => {
+      const td = el("td", null, h); td.style.color = "var(--muted)"; hr.appendChild(td);
+    });
+    t.appendChild(hr);
+    cell.feats.maDist.forEach(m => {
+      const tr = el("tr");
+      tr.appendChild(el("td", null, m.label));
+      tr.appendChild(el("td", null, fmt(m.value)));
+      tr.appendChild(el("td", null, (m.pct >= 0 ? "+" : "") + m.pct.toFixed(1) + "%"));
+      tr.appendChild(el("td", null, (m.atr >= 0 ? "+" : "") + m.atr.toFixed(1)));
+      const ptd = el("td");
+      if (m.pctl != null) {
+        const bad = m.pctl >= 90, warm = m.pctl >= 75;
+        const b = el("b", null,
+          `p${m.pctl}` + (bad ? " · EXTREME — rarely this stretched" :
+            warm ? " · stretched" : " · normal"));
+        b.style.color = bad ? "var(--crit)" : warm ? "var(--warn)" : "var(--muted)";
+        ptd.appendChild(b);
+      } else ptd.textContent = "—";
+      tr.appendChild(ptd);
+      t.appendChild(tr);
+    });
+    p.appendChild(t);
+    p.appendChild(el("div", "legend",
+      "p90+ in the trade's direction = the rubber band is taut: historically this instrument " +
+      "rarely gets further from that MA before snapping back — favour the pullback entry, or " +
+      "take partial profits if already in. Honest caveat: strong trends CAN stay extended for a " +
+      "long time, so a high percentile argues for patience and tighter management, not an " +
+      "automatic reversal trade."));
+  }
 
   /* case + ticket */
   const cols = el("div", "detailcols");
@@ -1879,6 +2140,7 @@ async function boot() {
   fetchFundamentals();     // crypto fundamentals (hourly)
   loadFundamentalsX();     // equities fundamentals from the backend
   loadNews().then(() => { lastNewsFetch = Date.now(); renderNewsView(); });
+  loadJournal().then(renderPerf);
   // initial crypto load: fast TFs first so the matrix fills progressively
   for (const tf of TFS) {
     await refreshTf(tf);
@@ -1902,6 +2164,7 @@ async function boot() {
         now - st.loadedAt > 300e3) { await loadUniverse(activeUni); detectEvents(); }
     if (now - lastNewsFetch > 300e3) {
       loadNews().then(() => { lastNewsFetch = Date.now(); renderNewsView(); });
+      loadJournal().then(renderPerf);
     }
     renderAll();
   }, 30000);
