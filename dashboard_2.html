@@ -1,0 +1,2174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trade Command Center — Crypto Live (Phase 1)</title>
+<style>
+:root{
+  color-scheme: dark;
+  --page:#0d0d0d; --surface:#1a1a19; --surface2:#222220; --ink:#ffffff;
+  --ink2:#c3c2b7; --muted:#898781; --grid:#2c2c2a; --border:rgba(255,255,255,.10);
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
+  --good:#0ca30c; --crit:#d03b3b; --warn:#fab219; --goodtext:#0ca30c;
+}
+:root[data-theme="light"]{
+  color-scheme: light;
+  --page:#f9f9f7; --surface:#fcfcfb; --surface2:#f0efec; --ink:#0b0b0b;
+  --ink2:#52514e; --muted:#898781; --grid:#e1e0d9; --border:rgba(11,11,11,.10);
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --goodtext:#006300;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--page);color:var(--ink);
+  font:13.5px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1500px;margin:0 auto;padding:14px 14px 40px}
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+h1{font-size:19px;margin:0}
+.stamp{font-size:12px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
+.dot.live{background:var(--good);box-shadow:0 0 6px var(--good)}
+.dot.ok{background:var(--s1)}
+.dot.err{background:var(--crit)}
+.dot.wait{background:var(--warn)}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+.themebtn{border:1px solid var(--border);border-radius:8px;padding:4px 10px;
+  font-size:12px;color:var(--ink2);margin-left:auto}
+.banner{display:none;background:#3a1010;color:#ff9d9d;border:1px solid var(--crit);
+  border-radius:9px;padding:8px 12px;font-size:12.5px;margin-bottom:10px}
+.banner.mock{display:block;background:#3a2f00;color:#ffd75e;border-color:var(--warn)}
+.alerts{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;min-height:44px}
+.alert{flex:0 0 auto;background:var(--surface);border:1px solid var(--border);
+  border-left:3px solid var(--warn);border-radius:9px;padding:6px 12px;font-size:12.5px;
+  max-width:380px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alert b{font-weight:650}
+.alert .t{color:var(--muted);margin-right:6px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px}
+/* universe tabs */
+.unitabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--grid);
+  margin-bottom:12px;padding-bottom:0}
+.unitabs button{padding:7px 12px;font-weight:600;font-size:12.5px;color:var(--ink2);
+  border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.unitabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--s1)}
+.unierr{background:var(--surface);border:1px dashed var(--border);border-radius:10px;
+  padding:14px;color:var(--ink2);font-size:12.5px;margin-bottom:12px;display:none}
+/* news */
+.newsfilters{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px}
+.nchip{border:1px solid var(--border);border-radius:999px;padding:3px 11px;
+  font-size:11.5px;color:var(--ink2)}
+.nchip[aria-pressed="true"]{background:var(--ink);color:var(--page);font-weight:650}
+.nitem{border-bottom:1px solid var(--grid);padding:9px 2px}
+.nitem:last-child{border-bottom:none}
+.nitem a{color:var(--ink);text-decoration:none;font-weight:550;font-size:13px}
+.nitem a:hover{text-decoration:underline}
+.ntags{font-size:11px;color:var(--muted);margin-top:2px}
+.ntag{display:inline-block;border:1px solid var(--border);border-radius:4px;
+  padding:0 5px;margin-right:4px}
+.ninst{color:var(--s1);cursor:pointer}
+.newstrail{border-top:1px solid var(--grid);margin-top:10px;padding-top:6px}
+h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.legend{font-size:11px;color:var(--muted);margin-top:8px}
+/* strategy bar */
+.stratrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.strat{border:1px solid var(--border);border-radius:10px;padding:9px 12px;text-align:left;
+  background:var(--surface2);font-weight:650;font-size:13px;cursor:pointer;width:100%}
+.strat.on{outline:2px solid var(--s1)}
+.strat .n{float:right;color:var(--s1);font-size:11.5px}
+.strat .d{display:block;font-weight:400;font-size:11px;color:var(--muted);margin-top:3px}
+/* layout */
+.cols{display:grid;grid-template-columns:330px 1fr;gap:12px;align-items:start;margin-top:12px}
+@media(max-width:1080px){.cols{grid-template-columns:1fr}}
+/* picks */
+.pick{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;
+  background:var(--surface2);cursor:pointer;width:100%;text-align:left;display:block}
+.pick:hover{border-color:var(--muted)}
+.pick .hd{display:flex;align-items:center;gap:8px}
+.pick .nm{font-weight:700;flex:1}
+.badge{font-size:10.5px;font-weight:700;border-radius:6px;padding:2px 7px;white-space:nowrap}
+.badge.LONG{background:var(--good);color:#fff}
+.badge.SHORT{background:var(--crit);color:#fff}
+.badge.WAIT{border:1px solid var(--border);color:var(--ink2)}
+.conf{font-size:11px;color:var(--muted)}
+.why{font-size:12px;color:var(--ink2);margin:6px 0}
+.why span{display:inline-block;background:var(--page);border:1px solid var(--border);
+  border-radius:5px;padding:1px 6px;margin:2px 3px 0 0;font-size:11px}
+.lvls{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;font-size:11.5px;
+  font-variant-numeric:tabular-nums}
+.lvls div{background:var(--page);border-radius:6px;padding:4px 7px}
+.lvls .l{color:var(--muted);font-size:10px;display:block}
+.lvls .sl{color:var(--crit)} .lvls .tp{color:var(--goodtext)}
+.convrow{display:flex;align-items:center;gap:8px;margin:7px 0 2px;font-size:11.5px}
+.convbar{flex:1;height:6px;border-radius:4px;background:var(--grid);overflow:hidden}
+.convbar i{display:block;height:100%;border-radius:4px}
+.convlbl{font-weight:700;white-space:nowrap}
+/* matrix */
+.matrix{overflow-x:auto}
+table.mtx{border-collapse:collapse;font-size:11.5px;width:100%;min-width:660px}
+.mtx th{color:var(--muted);font-weight:600;font-size:10.5px;padding:5px 6px;text-align:center}
+.mtx th:first-child{text-align:left}
+.mtx td{padding:3px 4px;text-align:center}
+.mtx td:first-child{text-align:left;font-weight:650;white-space:nowrap;cursor:pointer}
+.mtx td:first-child .g{color:var(--muted);font-weight:400;font-size:10px;display:block}
+.mtx td:first-child .pr{color:var(--ink2);font-weight:500;font-size:10.5px;
+  font-variant-numeric:tabular-nums;margin-left:6px}
+.cell{display:block;border-radius:5px;padding:3px 2px;font-variant-numeric:tabular-nums;
+  font-weight:600;cursor:pointer;min-width:44px}
+.cell:hover{outline:1px solid var(--muted)}
+/* detail overlay */
+.ovl{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;
+  align-items:flex-start;justify-content:center;padding:3vh 12px;z-index:50;overflow:auto}
+.ovl.open{display:flex}
+.dpanel{background:var(--page);border:1px solid var(--border);border-radius:14px;
+  max-width:960px;width:100%;padding:18px 20px}
+.dhd{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dhd b{font-size:17px}
+.close{border:1px solid var(--border);border-radius:8px;padding:4px 10px;color:var(--ink2);
+  margin-left:auto}
+.tvlink{font-size:12px;color:var(--s1);text-decoration:none;border:1px solid var(--border);
+  border-radius:8px;padding:4px 10px}
+.tfrow{display:flex;gap:4px;flex-wrap:wrap;margin:10px 0 6px}
+.tf{border:1px solid var(--border);border-radius:6px;padding:2px 9px;font-size:11.5px;color:var(--ink2)}
+.tf.on{background:var(--ink);color:var(--page);font-weight:700}
+.chartbox{background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:8px 6px 4px;margin:6px 0}
+.chartbox svg{display:block;width:100%;height:auto}
+.keyrow{display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--muted);margin:4px 6px}
+.k{display:inline-block;width:9px;height:9px;border-radius:3px;vertical-align:-1px;margin-right:4px}
+.tvbox{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:8px 0;
+  height:440px;background:var(--surface)}
+.tvbox iframe{width:100%;height:100%;border:0}
+.dh3{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}
+.dp{font-size:12.5px;color:var(--ink2);margin:6px 0}
+.detailcols{display:grid;grid-template-columns:1.35fr 1fr;gap:18px}
+@media(max-width:860px){.detailcols{grid-template-columns:1fr}}
+.ticket{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+.ticket td{padding:5px 8px;border-bottom:1px solid var(--grid);text-align:left}
+.ticket td:last-child{text-align:right}
+.ticket .slt{color:var(--crit)} .ticket .tpt{color:var(--goodtext)}
+.tin{display:flex;gap:10px;margin-bottom:8px;font-size:12px}
+.tin label{color:var(--muted)}
+.tin input{width:90px;font:inherit;background:var(--surface);color:var(--ink);
+  border:1px solid var(--border);border-radius:7px;padding:4px 8px}
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:3px 12px;margin:8px 0;font-size:12px}
+.checks span.ok{color:var(--goodtext)} .checks span.no{color:var(--muted)}
+footer{margin-top:18px;color:var(--muted);font-size:11.5px;border-top:1px solid var(--grid);
+  padding-top:10px}
+.phase{font-size:11px;color:var(--muted);border:1px dashed var(--border);border-radius:8px;
+  padding:3px 9px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>⚡ Trade Command Center</h1>
+  <span class="stamp">
+    <button type="button" id="statbtn" style="padding:0;font-size:12px;color:var(--muted)"><span class="dot wait" id="statdot"></span><span id="statTxt">connecting to Bybit…</span> 🔬</button>
+    <span class="phase">Crypto: live in-browser · other tabs &amp; news: served by the backend (hosted version)</span>
+  </span>
+  <button class="themebtn" id="themebtn" type="button">◐ Theme</button>
+</header>
+<div class="banner" id="banner"></div>
+<div class="panel" id="inspector" hidden style="margin-bottom:10px"></div>
+<div class="alerts" id="alerts"><span class="conf" style="align-self:center">Watching for squeezes, volume anomalies, structure breaks and liquidity sweeps…</span></div>
+
+<div class="unitabs" id="unitabs"></div>
+<div class="unierr" id="unierr"></div>
+
+<section id="view-logic" hidden>
+  <div class="panel" style="max-width:900px">
+    <h2>📖 How every recommendation is computed — the full logic, nothing hidden</h2>
+
+    <h3 class="dh3">Step 1 — Score each timeframe (−5 … +5)</h3>
+    <p class="dp">For every instrument on every timeframe, points are added up:
+    market structure from the swing sequence (higher-highs &amp; higher-lows +2, lower-highs &amp; lower-lows −2, mixed ±1);
+    price above the 50EMA +1, below −1; 50EMA above the 200EMA +0.5;
+    MACD histogram positive +1, negative −1; RSI above 55 +1, below 45 −1;
+    a Bollinger squeeze that just fired adds ±1 in its direction; a volume anomaly (&gt;2σ) adds ±0.5 with the candle.
+    The total is clamped to ±5 — that's the number in each matrix cell.</p>
+
+    <h3 class="dh3">Step 2 — Combine timeframe groups → trade type &amp; holding period</h3>
+    <p class="dp">Timeframes form three groups: <b>LTF</b> (5m/15m/30m), <b>MTF</b> (1H/4H), <b>HTF</b> (D/W/Q).
+    The <i>combination</i> decides everything:
+    all three agree → <b>🎯 ALIGNED</b> (hold days→weeks);
+    MTF+HTF agree while LTF pulls against → <b>🌊 SWING</b> (2–10 days — the LTF dip IS the entry);
+    LTF+MTF agree without HTF backing → <b>⚡ INTRADAY</b> (hours–1 day, conviction capped at 65 because it fights the bigger trend);
+    only HTF strong → <b>🗓 POSITION</b> (2–8 weeks, building);
+    anything conflicting → MIXED, never shown as a trade.</p>
+
+    <h3 class="dh3">Step 3 — Conviction (0–100)</h3>
+    <p class="dp">Starts from the strength of the group agreement, then adjusts:
+    a strategy trigger agreeing with the profile +8; fundamentals score (supply math for crypto, valuation/growth/quality for stocks) adds up to ±9 — asymmetric, since weak fundamentals help a short;
+    <b>extension guard:</b> price stretched &gt;2.2×ATR beyond the 50EMA in the trade direction −6, &gt;3×ATR −12 with a "chasing — wait for the pullback" warning. That guard exists precisely for the all-time-high problem: right direction, wrong moment.
+    Below 55 is never displayed; the picks list defaults to ≥70.</p>
+
+    <h3 class="dh3">Step 4 — The trade plan</h3>
+    <p class="dp">Entry prefers a <b>pullback into an unfilled fair value gap</b> behind price (within 2 ATR); otherwise at market ±0.25 ATR.
+    Stop goes <b>beyond the liquidity pool</b> (clustered equal highs/lows) plus a 0.35 ATR buffer — outside the stop-hunt zone — falling back to 1.5×ATR when no clean pool exists.
+    TP1/TP2/TP3 sit at 1R/2R/3R of the actual stop distance. The suggested management: a third off at each target, stop to break-even after TP1.
+    Position size always derives from the stop so a full stop-out costs exactly your chosen risk % — <b>being wrong is designed to cost one small loss, never "getting stuck for ages". If the stop is hit, the trade is over.</b></p>
+
+    <h3 class="dh3">The rubber-band meter (MA distance)</h3>
+    <p class="dp">Every instrument's detail view shows its distance from EMA 9, EMA 21, SMA 50, SMA 100 and SMA 200 —
+    in %, in ATR multiples (so volatile and quiet assets are comparable), and as a <b>historical percentile</b>:
+    how rare today's stretch is versus that instrument's own last 200 bars. p90+ in the trade's direction means the
+    band is taut and mean-reversion risk is elevated — the case text warns you, and the extension guard has already
+    docked conviction. Percentile measures rarity, not destiny: strong trends can stay extended.</p>
+
+    <h3 class="dh3">What this system does NOT know — read this honestly</h3>
+    <p class="dp">It is a momentum/structure system: it will always lean with the trend, which means it will sometimes flag strength near tops — the extension guard and the against-the-trade section are the counterweights, not a cure.
+    Conviction measures how strongly the evidence <i>aligns</i>, not a verified win-rate (that calibrates over weeks of recorded picks).
+    It doesn't know earnings dates, insider flows, or idiosyncratic company risk beyond the fundamentals score and tagged news.
+    And nothing here is financial advice — it is a systematic second opinion that always tells you where it's wrong (the invalidation level) before you enter.</p>
+  </div>
+</section>
+
+<section id="view-perf" hidden>
+  <div class="panel" id="perfbox"></div>
+</section>
+
+<section id="view-news" hidden>
+  <div class="panel">
+    <h2>📰 Global finance news — hierarchically tagged</h2>
+    <div class="newsfilters" id="nfDomain"></div>
+    <div class="newsfilters" id="nfSector"></div>
+    <div class="newsfilters" id="nfRegion"></div>
+    <div id="newslist"></div>
+  </div>
+</section>
+
+<div id="view-market">
+<div class="panel">
+  <h2>🧠 Strategies — click to scan all pairs for exact conditions</h2>
+  <div class="stratrow" id="stratrow"></div>
+  <div class="legend" id="stratnote">Click a strategy to filter picks &amp; matrix to its matches; click again to clear.</div>
+</div>
+
+<div class="cols">
+  <div class="panel">
+    <h2>🎯 Trade picks — MTF combination math, high conviction only</h2>
+    <label class="conf" style="display:block;margin-bottom:8px;cursor:pointer">
+      <input type="checkbox" id="hiconv" checked> show only ≥70 conviction
+      (unticked: adds the 55–69 watchlist; below 55 is never shown — it's noise)
+    </label>
+    <div id="picks"></div>
+  </div>
+  <div class="panel matrix">
+    <h2 id="mtxtitle">🗺 Multi-timeframe bias matrix</h2>
+    <table class="mtx" id="mtx"></table>
+    <div class="legend">Cell = structure + trend + momentum + volume score for that timeframe
+      (▲ bullish · ▼ bearish · − neutral, scale 1–5) · 🧨 squeeze on / firing · ⚡ volume anomaly.
+      Click a cell to open that timeframe's annotated chart.</div>
+  </div>
+</div>
+</div><!-- /view-market -->
+
+<footer>⚠️ Systematic technical analysis, generated automatically — not financial advice.
+Volume profile approximated from OHLCV. Prices from Bybit spot (your execution venue may differ slightly).
+Conviction measures signal alignment, not a guaranteed win-rate.</footer>
+</div>
+
+<div class="ovl" id="ovl" role="dialog" aria-modal="true">
+  <div class="dpanel" id="dpanel"></div>
+</div>
+<script>
+"use strict";
+/* ============ CONFIG ============ */
+const PAIRS = [
+  ["BTCUSDT","Bitcoin"],["ETHUSDT","Ethereum"],["SOLUSDT","Solana"],
+  ["BNBUSDT","BNB"],["XRPUSDT","XRP"],["ADAUSDT","Cardano"],
+  ["DOGEUSDT","Dogecoin"],["AVAXUSDT","Avalanche"],["LINKUSDT","Chainlink"],
+  ["DOTUSDT","Polkadot"],["TONUSDT","Toncoin"],["TRXUSDT","Tron"],
+  ["LTCUSDT","Litecoin"],["BCHUSDT","Bitcoin Cash"],["NEARUSDT","NEAR"],
+  ["APTUSDT","Aptos"],["SUIUSDT","Sui"],["ARBUSDT","Arbitrum"],
+  ["OPUSDT","Optimism"],["INJUSDT","Injective"],
+];
+const TFS = [
+  // everything refreshes every 60s (the FORMING bar ticks in real time even on
+  // high timeframes); W/Q every 2 min — completed HTF bars never change.
+  {key:"5m",  iv:"5",   refreshSec:60,  weight:0.5,  ms:3e5},
+  {key:"15m", iv:"15",  refreshSec:60,  weight:0.75, ms:9e5},
+  {key:"30m", iv:"30",  refreshSec:60,  weight:1,    ms:18e5},
+  {key:"1H",  iv:"60",  refreshSec:60,  weight:1.5,  ms:36e5},
+  {key:"4H",  iv:"240", refreshSec:60,  weight:2,    ms:144e5},
+  {key:"D",   iv:"D",   refreshSec:60,  weight:2,    ms:864e5},
+  {key:"W",   iv:"W",   refreshSec:120, weight:1.5,  ms:6048e5},
+  {key:"Q",   iv:"M",   refreshSec:120, weight:0.75, ms:78e8},  // monthly, aggregated ×3
+];
+const MOCK = new URLSearchParams(location.search).has("mock");
+const API = "https://api.bybit.com";
+const DATA_BASE = "data/";
+const DATA = {};        // DATA[sym][tfKey] = {candles, feats, fetchedAt}
+const TICKERS = {};     // sym -> {last, chg24}
+const ALERTS = [];      // {time, icon, sym, text}
+const INSTR = {};       // id -> {name, cls, region, sector, ig, tv, uni}
+const NEWS = {items: [], generated: 0};
+const FUNDX = {};       // equities/indices fundamentals from data/fundamentals.json
+let lastGoodFetch = 0;
+let activeUni = "crypto";
+let newsView = false;
+
+const UNIVERSES = [
+  {key: "crypto",      label: "₿ Crypto (live)"},
+  {key: "indices",     label: "🗺 Indices"},
+  {key: "commodities", label: "🛢 Commodities"},
+  {key: "fx",          label: "💱 FX"},
+  {key: "us",          label: "🇺🇸 US"},
+  {key: "uk",          label: "🇬🇧 UK"},
+  {key: "europe",      label: "🇪🇺 Europe"},
+  {key: "india",       label: "🇮🇳 India"},
+  {key: "japan",       label: "🇯🇵 Japan"},
+  {key: "chinahk",     label: "🇨🇳 China·HK"},
+];
+const UNI_STATE = {};   // key -> {loadedAt, generated, err}
+
+function curSyms() {
+  return Object.keys(INSTR).filter(id => INSTR[id].uni === activeUni);
+}
+function iName(id) { return INSTR[id] ? INSTR[id].name : id; }
+PAIRS.forEach(([sym, name]) => INSTR[sym] = {name, cls: "crypto",
+  region: "Global", sector: "", ig: false, tv: "BYBIT:" + sym, uni: "crypto"});
+function fundScore(id) {
+  if (typeof FUND !== "undefined" && FUND[id] && FUND[id].score != null)
+    return FUND[id].score;
+  return (FUNDX[id] && FUNDX[id].score) || 0;
+}
+
+/* load one JSON universe (non-crypto) from the Pages data files */
+async function loadUniverse(key) {
+  if (key === "crypto") return;
+  const st = UNI_STATE[key] = UNI_STATE[key] || {};
+  try {
+    const r = await fetch(DATA_BASE + key + ".json", {cache: "no-store"});
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    for (const inst of j.instruments) {
+      INSTR[inst.id] = {name: inst.name, cls: inst.cls, region: inst.region,
+        sector: inst.sector, ig: inst.ig, tv: inst.tv, uni: key};
+      DATA[inst.id] = DATA[inst.id] || {};
+      for (const [tfKey, rows] of Object.entries(inst.candles)) {
+        if (!TFS.some(t => t.key === tfKey)) continue;
+        const candles = rows.map(x => ({t: x[0], o: x[1], h: x[2], l: x[3],
+          c: x[4], v: x[5] || 0}));
+        DATA[inst.id][tfKey] = {candles, feats: computeFeatures(candles),
+          fetchedAt: Date.now()};
+      }
+      const d = DATA[inst.id]["D"];
+      if (d && d.candles.length >= 2) {
+        const n = d.candles.length;
+        TICKERS[inst.id] = {last: d.candles[n-1].c,
+          chg24: (d.candles[n-1].c / d.candles[n-2].c - 1) * 100};
+      }
+    }
+    st.loadedAt = Date.now(); st.generated = j.generated; st.err = null;
+  } catch (e) {
+    st.err = location.protocol === "file:"
+      ? "This tab needs the hosted version — the data files are built by GitHub Actions and served from GitHub Pages. Crypto works everywhere."
+      : "Could not load " + key + ".json: " + e.message;
+  }
+}
+
+async function loadNews() {
+  try {
+    const r = await fetch(DATA_BASE + "news.json", {cache: "no-store"});
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    NEWS.items = j.items || []; NEWS.generated = j.generated; NEWS.err = null;
+  } catch (e) {
+    NEWS.err = location.protocol === "file:"
+      ? "News is built by the backend — open the hosted (GitHub Pages) version to see it."
+      : "News unavailable: " + e.message;
+  }
+}
+
+const JOURNALD = {data: null, err: null};
+async function loadJournal() {
+  try {
+    const r = await fetch(DATA_BASE + "journal.json", {cache: "no-store"});
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    JOURNALD.data = await r.json(); JOURNALD.err = null;
+  } catch (e) {
+    JOURNALD.err = location.protocol === "file:"
+      ? "The journal is built by the backend — open the hosted version."
+      : "No journal yet — it starts recording after the first backend cycle with the journal step deployed.";
+  }
+}
+
+async function loadFundamentalsX() {
+  try {
+    const r = await fetch(DATA_BASE + "fundamentals.json", {cache: "no-store"});
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    Object.assign(FUNDX, j.instruments || {});
+  } catch (e) { /* equity fundamentals panel will say unavailable */ }
+}
+
+const $ = (s, r) => (r || document).querySelector(s);
+const el = (tag, cls, text) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+};
+const fmt = v => v == null || !isFinite(v) ? "—" :
+  v >= 1000 ? v.toLocaleString("en-GB", {maximumFractionDigits: 0}) :
+  v >= 10 ? v.toLocaleString("en-GB", {minimumFractionDigits: 2, maximumFractionDigits: 2}) :
+  v >= 0.01 ? String(+v.toPrecision(4)) : String(+v.toPrecision(3));
+const ukTime = ts => new Date(ts).toLocaleTimeString("en-GB",
+  {timeZone: "Europe/London", hour: "2-digit", minute: "2-digit"});
+
+/* ============ DATA LAYER ============ */
+async function apiGet(path) {
+  NET.requests++;
+  try {
+    const r = await fetch(API + path);
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    if (j.retCode !== 0) throw new Error(j.retMsg || "Bybit error");
+    NET.ok++; NET.lastUrlTime = Date.now();
+    return j.result;
+  } catch (e) {
+    NET.failed++; NET.lastError = e.message;
+    throw e;
+  }
+}
+
+function rowsToCandles(list) {
+  return list.map(r => ({t:+r[0], o:+r[1], h:+r[2], l:+r[3], c:+r[4], v:+r[5]})).reverse();
+}
+
+function aggregateQuarter(monthly) {
+  const out = [];
+  for (const m of monthly) {
+    const d = new Date(m.t);
+    const qKey = d.getUTCFullYear() + "-" + Math.floor(d.getUTCMonth() / 3);
+    const last = out[out.length - 1];
+    if (last && last.q === qKey) {
+      last.h = Math.max(last.h, m.h); last.l = Math.min(last.l, m.l);
+      last.c = m.c; last.v += m.v;
+    } else out.push({q: qKey, t: m.t, o: m.o, h: m.h, l: m.l, c: m.c, v: m.v});
+  }
+  return out;
+}
+
+async function fetchKlines(sym, tf) {
+  if (MOCK) return mockCandles(sym, tf);
+  const limit = 300;   // enough history for SMA 200 + its percentile; Q aggregates monthly
+  const res = await apiGet(`/v5/market/kline?category=spot&symbol=${sym}&interval=${tf.iv}&limit=${limit}`);
+  let candles = rowsToCandles(res.list);
+  if (tf.key === "Q") candles = aggregateQuarter(candles);
+  return candles;
+}
+
+async function fetchTickers() {
+  if (MOCK) {
+    PAIRS.forEach(([sym]) => {
+      const d = DATA[sym] && DATA[sym]["5m"];
+      if (d) TICKERS[sym] = {last: d.candles[d.candles.length-1].c,
+        chg24: (Math.sin(sym.length + Date.now()/9e7) * 3)};
+    });
+    return;
+  }
+  const res = await apiGet("/v5/market/tickers?category=spot");
+  for (const t of res.list) {
+    if (DATA[t.symbol] !== undefined || PAIRS.some(([s]) => s === t.symbol))
+      TICKERS[t.symbol] = {last: +t.lastPrice, chg24: +t.price24hPcnt * 100};
+  }
+}
+
+/* mock data for offline preview / testing (?mock=1) */
+function mulberry(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;
+  let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;
+  return((t^t>>>14)>>>0)/4294967296;};}
+function mockCandles(sym, tf) {
+  const seed = sym.split("").reduce((a,c)=>a+c.charCodeAt(0),0) * (TFS.indexOf(tf)+3);
+  const rnd = mulberry(seed);
+  const base = {BTCUSDT:109000, ETHUSDT:4400, SOLUSDT:210}[sym] || (rnd()*90+2);
+  const drift = (rnd()-0.42) * 0.004;
+  const n = tf.key === "Q" ? 36 : 300;
+  const stepMs = {5:3e5,15:9e5,30:18e5,60:36e5,240:144e5,D:864e5,W:6048e5,M:26e8}[tf.iv];
+  let px = base, out = [];
+  for (let i = 0; i < n; i++) {
+    const sq = i > n-40 && i < n-20 ? 0.3 : 1;              // squeeze window
+    const o = px, c = px * (1 + (rnd()-0.5) * 0.02 * sq + drift);
+    const h = Math.max(o,c) * (1 + rnd()*0.008*sq), l = Math.min(o,c) * (1 - rnd()*0.008*sq);
+    const v = (0.5 + rnd()) * (i === n-3 ? 4 : 1) * 1000;
+    out.push({t: Date.now() - (n-i)*stepMs, o, h, l, c, v});
+    px = c;
+  }
+  return out;
+}
+
+/* ============ INDICATORS ============ */
+function smaArr(vals, nn) {
+  const out = []; let s = 0;
+  for (let i = 0; i < vals.length; i++) {
+    s += vals[i];
+    if (i >= nn) s -= vals[i - nn];
+    out.push(i >= nn - 1 ? s / nn : vals[i]);
+  }
+  return out;
+}
+function emaArr(vals, n) {
+  const k = 2/(n+1), out = [vals[0]];
+  for (let i = 1; i < vals.length; i++) out.push(vals[i]*k + out[i-1]*(1-k));
+  return out;
+}
+function rsiArr(vals, n = 14) {
+  let g = 0, l = 0; const out = [50];
+  for (let i = 1; i < vals.length; i++) {
+    const d = vals[i]-vals[i-1], up = Math.max(d,0), dn = Math.max(-d,0);
+    if (i <= n) { g += up/n; l += dn/n; }
+    else { g = (g*(n-1)+up)/n; l = (l*(n-1)+dn)/n; }
+    out.push(l === 0 ? 100 : 100 - 100/(1 + g/l));
+  }
+  return out;
+}
+function atrArr(c, n = 14) {
+  const tr = c.map((x,i) => i === 0 ? x.h-x.l :
+    Math.max(x.h-x.l, Math.abs(x.h-c[i-1].c), Math.abs(x.l-c[i-1].c)));
+  const out = [tr[0]];
+  for (let i = 1; i < tr.length; i++) out.push((out[i-1]*(n-1)+tr[i])/n);
+  return out;
+}
+function stdev(vals, n, i) {
+  const s = vals.slice(i-n+1, i+1);
+  const m = s.reduce((a,b)=>a+b,0)/n;
+  return Math.sqrt(s.reduce((a,b)=>a+(b-m)*(b-m),0)/n);
+}
+
+/* pivots: idx is a pivot high if highest of (lb before, lb after) */
+function pivots(c, lb = 3) {
+  const highs = [], lows = [];
+  for (let i = lb; i < c.length - lb; i++) {
+    let ph = true, pl = true;
+    for (let j = i-lb; j <= i+lb; j++) {
+      if (c[j].h > c[i].h) ph = false;
+      if (c[j].l < c[i].l) pl = false;
+    }
+    if (ph) highs.push({i, p: c[i].h});
+    if (pl) lows.push({i, p: c[i].l});
+  }
+  return {highs, lows};
+}
+
+/* market structure: trend from swing sequence + last BOS/CHoCH event */
+function structure(c, piv) {
+  const H = piv.highs, L = piv.lows;
+  if (H.length < 2 || L.length < 2) return {state: 0, event: null};
+  const hh = H[H.length-1].p > H[H.length-2].p;
+  const hl = L[L.length-1].p > L[L.length-2].p;
+  const state = hh && hl ? 2 : hh || hl ? 1 : (!hh && !hl) ? -2 : -1;
+  // last break: close crossing most recent confirmed swing level
+  let event = null;
+  const lastH = H[H.length-1], lastL = L[L.length-1];
+  for (let i = c.length-1; i > Math.max(lastH.i, lastL.i); i--) {
+    if (c[i].c > lastH.p && c[i-1].c <= lastH.p) {
+      event = {type: state >= 0 ? "BOS ↑" : "CHoCH ↑", dir: 1, i, level: lastH.p}; break;
+    }
+    if (c[i].c < lastL.p && c[i-1].c >= lastL.p) {
+      event = {type: state <= 0 ? "BOS ↓" : "CHoCH ↓", dir: -1, i, level: lastL.p}; break;
+    }
+  }
+  return {state, event,
+    lastSwingHigh: lastH, lastSwingLow: lastL};
+}
+
+/* fair value gaps — unfilled 3-candle imbalances, nearest to price */
+function fvgs(c) {
+  const gaps = [];
+  for (let i = 2; i < c.length; i++) {
+    if (c[i].l > c[i-2].h) gaps.push({dir: 1, top: c[i].l, bot: c[i-2].h, i});
+    if (c[i].h < c[i-2].l) gaps.push({dir: -1, top: c[i-2].l, bot: c[i].h, i});
+  }
+  const last = c[c.length-1].c;
+  const unfilled = gaps.filter(g => {
+    for (let j = g.i + 1; j < c.length; j++) {
+      if (g.dir === 1 && c[j].l <= g.bot) return false;
+      if (g.dir === -1 && c[j].h >= g.top) return false;
+    }
+    return true;
+  });
+  const below = unfilled.filter(g => g.top < last)
+    .sort((a,b) => b.top - a.top)[0] || null;
+  const above = unfilled.filter(g => g.bot > last)
+    .sort((a,b) => a.bot - b.bot)[0] || null;
+  const inside = unfilled.find(g => last <= g.top && last >= g.bot) || null;
+  return {below, above, inside, unfilled};
+}
+
+/* liquidity pools: clustered equal highs / equal lows */
+function liquidity(c, piv, atr) {
+  const tol = 0.25 * atr;
+  const cluster = pts => {
+    const out = [];
+    const sorted = [...pts].sort((a,b) => a.p - b.p);
+    let group = [];
+    for (const pt of sorted) {
+      if (!group.length || pt.p - group[group.length-1].p <= tol) group.push(pt);
+      else { if (group.length >= 2) out.push(avg(group)); group = [pt]; }
+    }
+    if (group.length >= 2) out.push(avg(group));
+    return out;
+    function avg(g){return {p: g.reduce((a,x)=>a+x.p,0)/g.length, n: g.length,
+      lastI: Math.max(...g.map(x=>x.i))};}
+  };
+  const last = c[c.length-1].c;
+  const eqHighs = cluster(piv.highs.slice(-12));
+  const eqLows = cluster(piv.lows.slice(-12));
+  return {
+    above: eqHighs.filter(x => x.p > last).sort((a,b)=>a.p-b.p)[0] || null,
+    below: eqLows.filter(x => x.p < last).sort((a,b)=>b.p-a.p)[0] || null,
+  };
+}
+
+/* recent liquidity sweep: wick beyond a pool then close back inside (last `look` bars) */
+function sweep(c, liq, look = 8) {
+  for (let i = c.length-1; i >= Math.max(2, c.length-look); i--) {
+    if (liq.below && c[i].l < liq.below.p && c[i].c > liq.below.p)
+      return {dir: 1, i, level: liq.below.p};   // swept lows -> bullish
+    if (liq.above && c[i].h > liq.above.p && c[i].c < liq.above.p)
+      return {dir: -1, i, level: liq.above.p};  // swept highs -> bearish
+  }
+  return null;
+}
+
+/* volume profile from last `bars` candles */
+function volProfile(c, bars = 96, bins = 24) {
+  const s = c.slice(-bars);
+  const lo = Math.min(...s.map(x=>x.l)), hi = Math.max(...s.map(x=>x.h));
+  if (hi <= lo) return null;
+  const prof = Array(bins).fill(0);
+  s.forEach(x => {
+    const b = Math.min(bins-1, Math.max(0,
+      Math.floor(((x.h+x.l+x.c)/3 - lo)/(hi-lo)*(bins-1))));
+    prof[b] += x.v;
+  });
+  const total = prof.reduce((a,b)=>a+b,0);
+  const pocBin = prof.indexOf(Math.max(...prof));
+  // value area: expand from POC until 70% of volume
+  let va = prof[pocBin], loB = pocBin, hiB = pocBin;
+  while (va < total*0.7 && (loB > 0 || hiB < bins-1)) {
+    const dn = loB > 0 ? prof[loB-1] : -1, up = hiB < bins-1 ? prof[hiB+1] : -1;
+    if (up >= dn) { hiB++; va += prof[hiB]; } else { loB--; va += prof[loB]; }
+  }
+  const price = b => lo + (b+0.5)/(bins)*(hi-lo);
+  return {prof, lo, hi, poc: price(pocBin), val: price(loB), vah: price(hiB), pocBin, bins};
+}
+
+/* ============ FEATURE EXTRACTION per (symbol, timeframe) ============ */
+function computeFeatures(candles) {
+  const n = candles.length;
+  if (n < 24) return null;   // quarterly aggregates have ~20-60 bars; lighter but valid
+  const closes = candles.map(x=>x.c), vols = candles.map(x=>x.v);
+  const e20 = emaArr(closes,20), e50 = emaArr(closes,50), e200 = emaArr(closes,200);
+  const rsi = rsiArr(closes), atr = atrArr(candles);
+  const m12 = emaArr(closes,12), m26 = emaArr(closes,26);
+  const macd = closes.map((_,i)=>m12[i]-m26[i]);
+  const sig = emaArr(macd,9);
+  const hist = macd.map((v,i)=>v-sig[i]);
+  // Bollinger bandwidth + squeeze (lowest 15th pct of last 100)
+  const bw = [];
+  for (let i = 0; i < n; i++) {
+    if (i < 20) { bw.push(null); continue; }
+    const sd = stdev(closes, 20, i);
+    bw.push(4*sd / e20[i]);
+  }
+  const bwWin = bw.slice(-100).filter(x=>x!=null).sort((a,b)=>a-b);
+  const thresh = bwWin[Math.floor(bwWin.length*0.15)] ?? 0;
+  const inSqueeze = bw[n-1] != null && bw[n-1] <= thresh;
+  let released = null;  // fired within last 4 bars?
+  for (let i = n-4; i < n; i++) {
+    if (i > 20 && bw[i-1] != null && bw[i-1] <= thresh && bw[i] > thresh) {
+      released = {i, dir: closes[i] > e20[i] ? 1 : -1};
+    }
+  }
+  // volume z-score of last closed bar
+  const vs = vols.slice(-51,-1);
+  const vm = vs.reduce((a,b)=>a+b,0)/vs.length;
+  const vsd = Math.sqrt(vs.reduce((a,b)=>a+(b-vm)*(b-vm),0)/vs.length) || 1;
+  const volZ = (vols[n-1]-vm)/vsd;
+  const volDir = candles[n-1].c >= candles[n-1].o ? 1 : -1;
+
+  /* distance from the classic MA set — %, ×ATR, and historical percentile
+     (how rare today's stretch is vs the last 200 bars of this instrument) */
+  const maDist = [];
+  const maDefs = [
+    ["EMA 9", emaArr(closes, 9), 21], ["EMA 21", emaArr(closes, 21), 34],
+    ["SMA 50", smaArr(closes, 50), 60], ["SMA 100", smaArr(closes, 100), 110],
+    ["SMA 200", smaArr(closes, 200), 210],
+  ];
+  for (const [label, arr, minBars] of maDefs) {
+    if (n < minBars) continue;
+    const start = Math.max(minBars - 10, n - 200);
+    const histA = [];
+    for (let i = start; i < n; i++)
+      histA.push(Math.abs((closes[i] - arr[i]) / (atr[i] || 1)));
+    const curAtr = (closes[n-1] - arr[n-1]) / (atr[n-1] || 1);
+    const pctl = histA.length ? Math.round(100 *
+      histA.filter(x => x <= Math.abs(curAtr)).length / histA.length) : null;
+    maDist.push({label, value: arr[n-1],
+      pct: (closes[n-1] / arr[n-1] - 1) * 100, atr: curAtr, pctl});
+  }
+
+  const piv = pivots(candles);
+  const st = structure(candles, piv);
+  const fv = fvgs(candles);
+  const liq = liquidity(candles, piv, atr[n-1]);
+  const sw = sweep(candles, liq);
+  const vp = volProfile(candles);
+  const c = closes[n-1];
+
+  /* score: -5 … +5 */
+  let s = 0;
+  s += st.state;                                       // ±2 / ±1
+  s += c > e50[n-1] ? 1 : -1;
+  s += e50[n-1] > e200[n-1] ? 0.5 : -0.5;
+  s += hist[n-1] > 0 ? 1 : -1;
+  s += rsi[n-1] > 55 ? 1 : rsi[n-1] < 45 ? -1 : 0;
+  if (released) s += released.dir * 1;
+  if (volZ > 2) s += 0.5 * volDir;
+  const score = Math.max(-5, Math.min(5, Math.round(s)));
+
+  return {
+    close: c, score,
+    rsi: rsi[n-1], atr: atr[n-1], hist: hist[n-1],
+    e20: e20[n-1], e50: e50[n-1], e200: e200[n-1],
+    aboveE50: c > e50[n-1], e50aboveE200: e50[n-1] > e200[n-1],
+    stretch: (c - e50[n-1]) / (atr[n-1] || 1),   // extension in ATRs beyond the 50EMA
+    maDist,
+    bwPct: bw[n-1] != null && bwWin.length ?
+      bwWin.filter(x=>x<=bw[n-1]).length / bwWin.length : null,
+    inSqueeze, released, volZ, volDir,
+    structure: st, fvg: fv, liq, sweep: sw, vp,
+    series: {e20, e50, bwFlags: bw.map(x => x != null && x <= thresh)},
+  };
+}
+/* ============ MULTI-TIMEFRAME COMBINATION ENGINE ============
+   Timeframes form three groups. The COMBINATION of group agreements — not a
+   flat average — decides trade type, holding horizon and conviction:
+     LTF  5m/15m/30m   → execution
+     MTF  1H/4H        → swing driver
+     HTF  D/W/Q        → position trend
+   All three agree            → ALIGNED  (highest conviction)
+   MTF+HTF agree, LTF counter → SWING    (pullback = the entry)
+   LTF+MTF agree, HTF not     → INTRADAY (capped — counter/no HTF backing)
+   Only HTF strong            → POSITION (building; LTFs not yet in gear)
+   Anything else              → MIXED    (noise — never shown as a trade) */
+const GROUPS = {LTF: ["5m","15m","30m"], MTF: ["1H","4H"], HTF: ["D","W","Q"]};
+const TYPEMETA = {
+  ALIGNED:  {icon:"🎯", hold:"days → weeks (all groups agree — scale between swing & position)",
+             manage:"4H", entryTf:"1H"},
+  SWING:    {icon:"🌊", hold:"2–10 days", manage:"1H / 4H", entryTf:"1H"},
+  INTRADAY: {icon:"⚡", hold:"hours – 1 day", manage:"5m / 15m", entryTf:"15m"},
+  POSITION: {icon:"🗓", hold:"2–8 weeks", manage:"Daily", entryTf:"4H"},
+  MIXED:    {icon:"—",  hold:"no trade", manage:"—", entryTf:"1H"},
+};
+
+function groupScore(sym, keys) {
+  let num = 0, den = 0;
+  for (const k of keys) {
+    const tf = TFS.find(t => t.key === k);
+    const f = DATA[sym] && DATA[sym][k] && DATA[sym][k].feats;
+    if (!f) continue;
+    num += (f.score / 5) * tf.weight;
+    den += tf.weight;
+  }
+  return den ? num / den : null;   // -1 … +1
+}
+
+function mtfProfile(sym) {
+  const gL = groupScore(sym, GROUPS.LTF),
+        gM = groupScore(sym, GROUPS.MTF),
+        gH = groupScore(sym, GROUPS.HTF);
+  if (gL == null || gM == null || gH == null) return null;
+  const sL = Math.sign(gL), sM = Math.sign(gM), sH = Math.sign(gH);
+  const aL = Math.abs(gL), aM = Math.abs(gM), aH = Math.abs(gH);
+  let type = "MIXED", dir = 0, conv = 0, note = "";
+
+  if (sM && sM === sH && aM >= 0.3 && aH >= 0.3) {
+    if (sL === sM && aL >= 0.25) {
+      type = "ALIGNED"; dir = sM;
+      conv = Math.round(62 + 38 * (aL + aM + aH) / 3);
+      note = "LTF, MTF and HTF all agree";
+    } else {
+      type = "SWING"; dir = sM;
+      conv = Math.round(55 + 35 * (aM + aH) / 2);
+      if (sL === -sM && aL >= 0.6) { conv -= 12;
+        note = "strong LTF counter-move — let it turn before entering"; }
+      else if (sL === -sM && aL >= 0.25)
+        note = "LTF pulling back against the trend — that pullback is the entry";
+      else note = "MTF + HTF aligned; LTF neutral";
+    }
+  } else if (sL && sL === sM && aL >= 0.3 && aM >= 0.3) {
+    type = "INTRADAY"; dir = sL;
+    conv = Math.min(65, Math.round(45 + 30 * (aL + aM) / 2));
+    note = sH === -sL ? "runs AGAINST the higher-timeframe trend — intraday scope only"
+                      : "HTF neutral — intraday scope";
+  } else if (sH && aH >= 0.5) {
+    type = "POSITION"; dir = sH;
+    conv = Math.round(48 + 27 * aH);
+    note = "HTF trend intact; lower timeframes not yet in gear — position building";
+  } else {
+    dir = sM || sH || sL || 0;
+    conv = Math.round(10 + 30 * Math.max(aL, aM, aH));
+    note = "timeframe groups conflict — no edge";
+  }
+  conv = Math.max(0, Math.min(100, conv));
+  return {type, dir, conv, note, gL, gM, gH, meta: TYPEMETA[type],
+    tier: conv >= 70 ? "HIGH" : conv >= 55 ? "MEDIUM" : "LOW"};
+}
+
+/* extension guard: entering in the trade direction when price is already
+   stretched far beyond the 50EMA is chasing — penalize conviction and say so */
+function extensionCheck(sym, tfKey, dir) {
+  const f = DATA[sym] && DATA[sym][tfKey] && DATA[sym][tfKey].feats;
+  if (!f || f.stretch == null) return null;
+  const s = f.stretch * dir;   // positive = stretched in the trade direction
+  if (s > 3) return {pen: 12, tag: `⚠ extended ${s.toFixed(1)}×ATR past 50EMA — chasing; wait for the pullback`};
+  if (s > 2.2) return {pen: 6, tag: `stretched ${s.toFixed(1)}×ATR past 50EMA — late entry risk`};
+  return null;
+}
+
+/* rough time-to-TP2 estimate: TP2 sits ~3 ATR out; net progress ~0.4 ATR/bar */
+function estTp2(tfKey) {
+  const tf = TFS.find(t => t.key === tfKey);
+  const ms = tf.ms * 7.5;
+  const h = ms / 36e5;
+  return h < 36 ? "~" + Math.max(1, Math.round(h)) + "h" :
+    "~" + Math.round(h / 24) + " days";
+}
+
+/* compatibility wrapper used by matrix/case rendering */
+function confluence(sym) {
+  const p = mtfProfile(sym);
+  if (!p) return null;
+  return {dir: p.dir || 1, raw: (p.dir || 1) * p.conv / 100, conv: p.conv,
+    htfAligned: p.type === "ALIGNED" || p.type === "SWING",
+    tier: p.tier, profile: p};
+}
+
+/* ============ TRADE PLAN BUILDER ============ */
+function buildPlan(sym, tfKey, dir) {
+  const f = DATA[sym][tfKey].feats;
+  const c = f.close, atr = f.atr;
+  // entry zone: prefer an unfilled FVG behind price in trade direction, within 2 ATR
+  let eLo, eHi, entryNote = "at market";
+  const gap = dir === 1 ? f.fvg.below : f.fvg.above;
+  if (gap && Math.abs(((gap.top + gap.bot)/2) - c) < 2*atr) {
+    eLo = gap.bot; eHi = gap.top;
+    entryNote = "pullback into unfilled FVG";
+  } else {
+    eLo = c - 0.25*atr; eHi = c + 0.25*atr;
+  }
+  const entry = (eLo + eHi) / 2;
+  // stop: beyond the liquidity pool / swing, with an ATR buffer; ATR fallback
+  let sl, slNote;
+  if (dir === 1) {
+    const base = f.liq.below ? f.liq.below.p :
+      (f.structure.lastSwingLow ? f.structure.lastSwingLow.p : null);
+    sl = base != null && entry - base < 3*atr && base < entry
+      ? base - 0.35*atr : entry - 1.5*atr;
+    slNote = base != null && sl < base ? "under liquidity/swing lows" : "1.5×ATR";
+  } else {
+    const base = f.liq.above ? f.liq.above.p :
+      (f.structure.lastSwingHigh ? f.structure.lastSwingHigh.p : null);
+    sl = base != null && base - entry < 3*atr && base > entry
+      ? base + 0.35*atr : entry + 1.5*atr;
+    slNote = base != null && sl > base ? "over liquidity/swing highs" : "1.5×ATR";
+  }
+  const risk = Math.abs(entry - sl);
+  const tp = r => dir === 1 ? entry + r*risk : entry - r*risk;
+  const inval = dir === 1
+    ? (f.structure.lastSwingLow ? f.structure.lastSwingLow.p : sl)
+    : (f.structure.lastSwingHigh ? f.structure.lastSwingHigh.p : sl);
+  return {dir, tfKey, eLo, eHi, entry, entryNote, sl, slNote, risk,
+    tp1: tp(1), tp2: tp(2), tp3: tp(3), inval};
+}
+
+/* ============ STRATEGIES ============ */
+const STRATEGIES = [
+  {
+    key: "squeeze", icon: "🧨", name: "Squeeze Breakout",
+    desc: "BB squeeze released + volume surge + structure break, in the release direction",
+    scanTfs: ["15m","30m","1H","4H"],
+    match(sym, tfKey) {
+      const f = DATA[sym][tfKey].feats;
+      if (!f || !f.released) return null;
+      const conf = (f.volZ > 1.5 ? 1 : 0) +
+        (f.structure.event && f.structure.event.dir === f.released.dir ? 1 : 0);
+      if (conf < 1) return null;
+      const tags = ["squeeze fired " + (f.released.dir === 1 ? "↑" : "↓")];
+      if (f.volZ > 1.5) tags.push(`vol +${f.volZ.toFixed(1)}σ`);
+      if (f.structure.event && f.structure.event.dir === f.released.dir)
+        tags.push(f.structure.event.type);
+      return {dir: f.released.dir, tags};
+    },
+  },
+  {
+    key: "fvg", icon: "📐", name: "FVG Pullback",
+    desc: "4H+D trend aligned; price trading back into an unfilled fair value gap",
+    scanTfs: ["15m","30m","1H"],
+    match(sym, tfKey) {
+      const cv = confluence(sym);
+      if (!cv || !cv.htfAligned) return null;
+      const f = DATA[sym][tfKey].feats;
+      if (!f) return null;
+      const g = f.fvg.inside;
+      if (!g || g.dir !== cv.dir) return null;
+      return {dir: cv.dir, tags: ["HTF aligned " + (cv.dir===1?"↑":"↓"),
+        "inside unfilled FVG", `RSI ${f.rsi.toFixed(0)}`]};
+    },
+  },
+  {
+    key: "sweep", icon: "🩸", name: "Liquidity Sweep Reversal",
+    desc: "Equal highs/lows swept then CHoCH — reversal with the stop beyond the sweep",
+    scanTfs: ["15m","30m","1H"],
+    match(sym, tfKey) {
+      const f = DATA[sym][tfKey].feats;
+      if (!f || !f.sweep) return null;
+      const ev = f.structure.event;
+      if (!ev || !ev.type.startsWith("CHoCH") || ev.dir !== f.sweep.dir) return null;
+      return {dir: f.sweep.dir, tags: [
+        f.sweep.dir === 1 ? "swept equal lows" : "swept equal highs",
+        ev.type, `RSI ${f.rsi.toFixed(0)}`]};
+    },
+  },
+  {
+    key: "trend", icon: "🌊", name: "Trend Rider",
+    desc: "Daily + 4H aligned; 1H pullback to the 20EMA with momentum resuming",
+    scanTfs: ["1H"],
+    match(sym, tfKey) {
+      const d = DATA[sym];
+      const f4 = d["4H"] && d["4H"].feats, fD = d["D"] && d["D"].feats;
+      const f = d[tfKey] && d[tfKey].feats;
+      if (!f4 || !fD || !f) return null;
+      const dir = Math.sign(f4.score);
+      if (dir === 0 || Math.sign(fD.score) !== dir) return null;
+      if (Math.abs(f4.score) < 3 || Math.abs(fD.score) < 3) return null;
+      if (Math.abs(f.close - f.e20) > 0.6*f.atr) return null;   // at the 20EMA
+      if (f.rsi < 38 || f.rsi > 62) return null;                 // mid-range reset
+      return {dir, tags: ["D+4H trend " + (dir === 1 ? "↑" : "↓"),
+        "pullback to 1H 20EMA", `RSI ${f.rsi.toFixed(0)} reset`]};
+    },
+  },
+  {
+    key: "fade", icon: "⚖️", name: "Range Fade",
+    desc: "No daily trend; price stretched at the value-area edge — fade back to POC",
+    scanTfs: ["1H"],
+    match(sym, tfKey) {
+      const d = DATA[sym];
+      const fD = d["D"] && d["D"].feats, f = d[tfKey] && d[tfKey].feats;
+      if (!fD || !f || Math.abs(fD.score) > 1 || !f.vp) return null;
+      if (f.close >= f.vp.vah - 0.3*f.atr && f.rsi > 63)
+        return {dir: -1, tags: ["at value-area high", `RSI ${f.rsi.toFixed(0)} stretched`,
+          "target POC " + fmt(f.vp.poc)]};
+      if (f.close <= f.vp.val + 0.3*f.atr && f.rsi < 37)
+        return {dir: 1, tags: ["at value-area low", `RSI ${f.rsi.toFixed(0)} washed`,
+          "target POC " + fmt(f.vp.poc)]};
+      return null;
+    },
+  },
+];
+
+function scanStrategies() {
+  const out = {};   // key -> [{sym, tfKey, dir, tags, plan, conv}]
+  for (const st of STRATEGIES) {
+    out[st.key] = [];
+    for (const sym of curSyms()) {
+      if (!DATA[sym]) continue;
+      for (const tfKey of st.scanTfs) {
+        if (!DATA[sym][tfKey] || !DATA[sym][tfKey].feats) continue;
+        let m = null;
+        try { m = st.match(sym, tfKey); } catch (e) { /* one bad match never kills scan */ }
+        if (m) {
+          const prof = mtfProfile(sym);
+          let conv = 40;
+          if (prof) conv = prof.dir === m.dir
+            ? Math.min(100, prof.conv + 8)          // trigger + MTF agreement
+            : Math.min(45, Math.round(prof.conv * 0.5)); // trigger against MTF = noise
+          const fs = fundScore(sym);
+          conv = conv + fs * 3 * (m.dir === 1 ? 1 : -0.5);
+          const ext = extensionCheck(sym, tfKey, m.dir);
+          if (ext) { conv -= ext.pen; m.tags.push(ext.tag); }
+          conv = Math.round(Math.max(0, Math.min(100, conv)));
+          out[st.key].push({sym, tfKey, dir: m.dir, tags: m.tags,
+            plan: buildPlan(sym, tfKey, m.dir), conv, prof, strat: st});
+          break;  // first matching TF wins per symbol
+        }
+      }
+    }
+    out[st.key].sort((a,b) => b.conv - a.conv);
+  }
+  return out;
+}
+
+/* pure MTF-alignment picks: no strategy trigger needed — the combination
+   itself IS the signal when it clears the bar */
+const ALIGN_STRAT = {key: "align", icon: "🧮", name: "MTF Alignment"};
+function alignmentPicks() {
+  const out = [];
+  for (const sym of curSyms()) {
+    const p = mtfProfile(sym);
+    if (!p || !p.dir || p.type === "MIXED" || p.conv < 55) continue;
+    const tfKey = p.meta.entryTf;
+    if (!DATA[sym] || !DATA[sym][tfKey] || !DATA[sym][tfKey].feats) continue;
+    const gTxt = [["L", p.gL], ["M", p.gM], ["H", p.gH]]
+      .map(([k, g]) => k + (g >= 0 ? "+" : "−") + Math.round(Math.abs(g) * 100))
+      .join(" ");
+    const fs = fundScore(sym);
+    let conv = p.conv + fs * 3 * (p.dir === 1 ? 1 : -0.5);
+    const tags = [p.note, gTxt];
+    const ext = extensionCheck(sym, tfKey, p.dir);
+    if (ext) { conv -= ext.pen; tags.push(ext.tag); }
+    conv = Math.round(Math.max(0, Math.min(100, conv)));
+    out.push({sym, tfKey, dir: p.dir, conv, prof: p, strat: ALIGN_STRAT,
+      tags, plan: buildPlan(sym, tfKey, p.dir)});
+  }
+  return out.sort((a, b) => b.conv - a.conv);
+}
+
+/* ============ CASE NARRATIVE ============ */
+function buildCase(sym, tfKey, dir) {
+  const name = iName(sym);
+  const d = DATA[sym], f = d[tfKey].feats;
+  const cv = confluence(sym);
+  const paras = [];
+  const dirWord = dir === 1 ? "long" : "short";
+  const stStates = TFS.map(tf => {
+    const ff = d[tf.key] && d[tf.key].feats;
+    return ff ? {k: tf.key, s: ff.score} : null;
+  }).filter(Boolean);
+  const agree = stStates.filter(x => Math.sign(x.s) === dir && Math.abs(x.s) >= 2)
+    .map(x => x.k);
+  paras.push(`Structure: ${agree.length ? agree.join(", ") + " lean " + dirWord
+    : "timeframes are mixed"}. On ${tfKey}, the swing sequence reads ` +
+    (f.structure.state >= 2 ? "higher highs and higher lows" :
+     f.structure.state <= -2 ? "lower highs and lower lows" : "mixed") +
+    (f.structure.event ? `, with a recent ${f.structure.event.type} at ${fmt(f.structure.event.level)}.` : "."));
+  paras.push(`Momentum & volatility on ${tfKey}: RSI ${f.rsi.toFixed(0)}, MACD histogram ` +
+    (f.hist > 0 ? "positive" : "negative") + ", price " +
+    (f.aboveE50 ? "above" : "below") + " the 50EMA. " +
+    (f.released ? `A Bollinger squeeze released ${f.released.dir === 1 ? "upward" : "downward"} within the last few bars. ` :
+     f.inSqueeze ? "A Bollinger squeeze is still coiling — expansion is pending. " : "") +
+    (f.volZ > 2 ? `Last bar's volume ran +${f.volZ.toFixed(1)}σ above average — real participation.` :
+     "Volume is unremarkable."));
+  const liqSide = dir === 1 ? f.liq.above : f.liq.below;
+  const stopSide = dir === 1 ? f.liq.below : f.liq.above;
+  paras.push("Liquidity: " +
+    (liqSide ? `a pool of ${dir === 1 ? "equal highs" : "equal lows"} sits at ${fmt(liqSide.p)} — the magnet the first targets lean on. ` : "no clean pool ahead — targets are R-multiples. ") +
+    (stopSide ? `Stops cluster ${dir === 1 ? "below" : "above"} ${fmt(stopSide.p)}, so the SL goes beyond that pool, not inside it.` :
+     "No clean pool behind — the stop falls back to 1.5×ATR.") +
+    (f.vp ? ` Volume profile: POC ${fmt(f.vp.poc)}, value area ${fmt(f.vp.val)}–${fmt(f.vp.vah)}.` : ""));
+  // against the trade
+  const against = [];
+  const opp = stStates.filter(x => Math.sign(x.s) === -dir && Math.abs(x.s) >= 2).map(x => x.k);
+  if (opp.length) against.push(`${opp.join(", ")} disagree with the ${dirWord}`);
+  if (dir === 1 && f.rsi > 70) against.push(`RSI ${f.rsi.toFixed(0)} is overbought — chasing risk`);
+  if (dir === -1 && f.rsi < 30) against.push(`RSI ${f.rsi.toFixed(0)} is oversold — bounce risk`);
+  if (f.stretch != null && f.stretch * dir > 2.2)
+    against.push(`price is ${(f.stretch * dir).toFixed(1)}×ATR beyond the 50EMA — extended; ` +
+      `a better entry is the pullback, and near highs the risk of buying the top of the leg is real`);
+  const taut = (f.maDist || []).filter(m => m.pctl != null && m.pctl >= 90 &&
+    Math.sign(m.atr) === dir);
+  if (taut.length)
+    against.push(`rubber-band warning: distance from ${taut.map(m => m.label).join(" & ")} ` +
+      `is at the ${taut[0].pctl}th percentile of the last 200 bars — mean-reversion risk is elevated`);
+  if (cv && !cv.htfAligned) against.push("4H and Daily are not aligned — this is a lower-timeframe trade only");
+  paras.push("Against the trade: " + (against.length ? against.join("; ") + "." :
+    "no strong counter-signal right now — invalidation is the level below."));
+  return paras;
+}
+
+/* ============ EVENT ALERTS (per refresh) ============ */
+const prevState = {};
+function detectEvents() {
+  const now = Date.now();
+  for (const sym of Object.keys(INSTR)) {
+    const name = iName(sym);
+    for (const tf of TFS) {
+      const cell = DATA[sym] && DATA[sym][tf.key];
+      if (!cell || !cell.feats) continue;
+      const key = sym + tf.key, f = cell.feats, p = prevState[key] || {};
+      if (f.released && !p.released)
+        pushAlert("🧨", sym, `${name} squeeze fired ${f.released.dir === 1 ? "↑" : "↓"} on ${tf.key}`);
+      if (f.volZ > 2.5 && !(p.volZ > 2.5))
+        pushAlert("⚡", sym, `${name} volume +${f.volZ.toFixed(1)}σ on ${tf.key}`);
+      if (f.structure.event && (!p.event || p.event !== f.structure.event.type + f.structure.event.i))
+        if (f.structure.event.i >= cell.candles.length - 2)
+          pushAlert("📐", sym, `${name} ${f.structure.event.type} on ${tf.key} at ${fmt(f.structure.event.level)}`);
+      if (f.sweep && !p.sweep)
+        pushAlert("🩸", sym, `${name} swept ${f.sweep.dir === 1 ? "lows" : "highs"} at ${fmt(f.sweep.level)} on ${tf.key}`);
+      prevState[key] = {released: !!f.released, volZ: f.volZ,
+        event: f.structure.event ? f.structure.event.type + f.structure.event.i : null,
+        sweep: !!f.sweep};
+    }
+  }
+  function pushAlert(icon, sym, text) {
+    ALERTS.unshift({time: now, icon, sym, text});
+    if (ALERTS.length > 30) ALERTS.pop();
+  }
+}
+/* ============ FUNDAMENTALS (crypto — DeFiLlama + CoinGecko) ============ */
+// Optional: paste a free CoinGecko *demo* API key here if supply data shows "—"
+// (get one at coingecko.com/en/api — the keyless endpoint is rate-limited).
+const COINGECKO_KEY = "";
+
+const GECKO_IDS = {
+  BTCUSDT:"bitcoin", ETHUSDT:"ethereum", SOLUSDT:"solana", BNBUSDT:"binancecoin",
+  XRPUSDT:"ripple", ADAUSDT:"cardano", DOGEUSDT:"dogecoin", AVAXUSDT:"avalanche-2",
+  LINKUSDT:"chainlink", DOTUSDT:"polkadot", TONUSDT:"the-open-network",
+  TRXUSDT:"tron", LTCUSDT:"litecoin", BCHUSDT:"bitcoin-cash", NEARUSDT:"near",
+  APTUSDT:"aptos", SUIUSDT:"sui", ARBUSDT:"arbitrum", OPUSDT:"optimism",
+  INJUSDT:"injective",
+};
+const LLAMA_CHAIN = {
+  ETHUSDT:"Ethereum", SOLUSDT:"Solana", BNBUSDT:"BSC", ADAUSDT:"Cardano",
+  AVAXUSDT:"Avalanche", TRXUSDT:"Tron", TONUSDT:"TON", NEARUSDT:"Near",
+  APTUSDT:"Aptos", SUIUSDT:"Sui", ARBUSDT:"Arbitrum", OPUSDT:"Optimism",
+  DOTUSDT:"Polkadot", INJUSDT:"Injective",
+};
+const DESCRIPTIONS = {
+  BTCUSDT:"The original cryptocurrency — a fixed-supply (21M) monetary asset secured by proof-of-work. No smart contracts of its own; traded as digital gold and the market's risk barometer. Everything else correlates to it.",
+  ETHUSDT:"The dominant smart-contract platform: most DeFi, stablecoins and NFTs settle here or on its Layer-2s. Fee revenue burns supply; staking yields ~3%. TVL is the core usage metric.",
+  SOLUSDT:"High-throughput single-chain platform competing with Ethereum on speed and cost. Strong retail/memecoin and payments activity; monitor network uptime history and validator concentration.",
+  BNBUSDT:"Exchange token of Binance plus gas token of the BNB Chain. Value tied to Binance's business (burns from fees) — carries exchange/regulatory risk alongside chain usage.",
+  XRPUSDT:"Payments-focused ledger aimed at cross-border settlement (Ripple). No smart-contract TVL to speak of; driven by legal clarity, bank partnerships and ETF speculation.",
+  ADAUSDT:"Research-driven proof-of-stake platform. Modest DeFi TVL relative to market cap — valuation leans on community and staking rather than on-chain usage.",
+  DOGEUSDT:"The original memecoin — inflationary supply (~5B new DOGE/yr), no cap, minimal utility. Trades on sentiment, Elon-adjacent news and retail cycles. Pure momentum asset.",
+  AVAXUSDT:"Subnet-based smart-contract platform targeting institutions and gaming. Watch subnet adoption and TVL vs the large FDV overhang from early allocations.",
+  LINKUSDT:"The dominant oracle network — feeds price data to most of DeFi. Not a chain (no TVL of its own); value tracks total DeFi activity and CCIP/bank pilots. Infrastructure bet.",
+  DOTUSDT:"Polkadot's relay-chain token securing a network of parachains. High staking ratio; usage has lagged the top platforms — watch the 2.0 rollout.",
+  TONUSDT:"Chain integrated with Telegram's ~900M users — distribution is the thesis. Watch actual wallet activity vs hype cycles and concentrated early supply.",
+  TRXUSDT:"Low-fee chain that settles a huge share of global USDT transfers, especially in emerging markets. Stablecoin volume is the usage metric; governance is centralised around Justin Sun.",
+  LTCUSDT:"Early Bitcoin fork positioned as digital silver — faster blocks, 84M cap. Little development activity; mainly a payments/beta-to-BTC trade.",
+  BCHUSDT:"Bitcoin fork prioritising cheap on-chain payments with bigger blocks. Niche usage; moves largely with BTC beta and periodic halving narratives.",
+  NEARUSDT:"Usability-focused smart-contract chain pivoting toward AI-agent infrastructure. Watch daily active accounts (aggressively marketed) vs real TVL.",
+  APTUSDT:"Move-language chain from ex-Meta engineers. Well funded, institutional partnerships; large scheduled unlocks — check the vesting page before positioning long-term.",
+  SUIUSDT:"The other Move-language chain — object-centric design, strong gaming/DeFi push. Same caveat as Aptos: significant supply still vesting.",
+  ARBUSDT:"Largest Ethereum Layer-2 by TVL (optimistic rollup). Token governs the DAO but captures no sequencer fees yet — usage-to-value link is the open question.",
+  OPUSDT:"Ethereum L2 whose OP Stack powers a 'Superchain' including Coinbase's Base. Token value leans on governance and Superchain growth; fee capture limited.",
+  INJUSDT:"Cosmos-based chain specialised in on-chain derivatives/orderbooks. Small but real niche; burn auctions tie activity to supply reduction.",
+};
+
+const FUND = {};              // sym -> {mcap, fdv, circ, max, rank, tvl, flags, score, err}
+let lastFundFetch = 0;
+
+function fundAnalyse(sym, f) {
+  const flags = []; let score = 0;
+  if (f.fdv && f.mcap) {
+    const r = f.fdv / f.mcap;
+    if (r > 2) { flags.push(`⚠ FDV is ${r.toFixed(1)}× market cap — heavy future dilution`); score -= 2; }
+    else if (r > 1.3) { flags.push(`FDV ${r.toFixed(1)}× mcap — meaningful supply still to come`); score -= 1; }
+    else flags.push("✓ most supply already circulating — low dilution risk");
+    if (r <= 1.3) score += 1;
+  }
+  if (f.circ && f.max) {
+    const pct = f.circ / f.max * 100;
+    if (pct < 60) flags.push(`only ${pct.toFixed(0)}% of max supply circulating — unlock overhang`);
+  } else if (f.max == null && f.mcap)
+    flags.push("no hard supply cap (inflationary or uncapped)");
+  if (f.tvl && f.mcap) {
+    const r = f.tvl / f.mcap;
+    if (r > 0.3) { flags.push(`✓ TVL is ${(r*100).toFixed(0)}% of mcap — real on-chain usage`); score += 2; }
+    else if (r > 0.05) { flags.push(`TVL ${(r*100).toFixed(0)}% of mcap — moderate usage`); score += 1; }
+    else flags.push(`TVL only ${(r*100).toFixed(1)}% of mcap — valuation leans on narrative`);
+  } else if (LLAMA_CHAIN[sym] === undefined && f.mcap)
+    flags.push("no TVL metric — not a smart-contract chain (judge on its own use case)");
+  if (f.rank && f.rank <= 10) { flags.push(`✓ top-${f.rank} by market cap — deep liquidity`); score += 1; }
+  f.flags = flags; f.score = Math.max(-3, Math.min(3, score));
+}
+
+async function fetchFundamentals() {
+  lastFundFetch = Date.now();
+  if (MOCK) {
+    PAIRS.forEach(([sym], i) => {
+      const mcap = 1e9 * (200 - i*9), fdv = mcap * (1 + (i%4)*0.5);
+      const f = {mcap, fdv, circ: 1e9, max: i%3 ? 2e9 : null, rank: i+1,
+        tvl: LLAMA_CHAIN[sym] ? mcap * (0.05 + (i%5)*0.1) : null};
+      fundAnalyse(sym, f); FUND[sym] = f;
+    });
+    return;
+  }
+  // DeFiLlama chain TVLs — one open CORS call, no key
+  try {
+    const chains = await (await fetch("https://api.llama.fi/v2/chains")).json();
+    const bySym = {};
+    for (const [sym, name] of Object.entries(LLAMA_CHAIN)) {
+      const row = chains.find(c => c.name === name);
+      if (row) bySym[sym] = row.tvl;
+    }
+    for (const [sym] of PAIRS) {
+      FUND[sym] = FUND[sym] || {};
+      FUND[sym].tvl = bySym[sym] ?? null;
+    }
+  } catch (e) { /* TVL column shows — */ }
+  // CoinGecko markets — supply, FDV, rank (keyless is rate-limited; key optional)
+  try {
+    const ids = Object.values(GECKO_IDS).join(",");
+    const key = COINGECKO_KEY ? "&x_cg_demo_api_key=" + COINGECKO_KEY : "";
+    const rows = await (await fetch(
+      "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&per_page=250&ids=" +
+      ids + key)).json();
+    if (Array.isArray(rows)) {
+      for (const [sym, id] of Object.entries(GECKO_IDS)) {
+        const r = rows.find(x => x.id === id);
+        if (!r) continue;
+        FUND[sym] = Object.assign(FUND[sym] || {}, {
+          mcap: r.market_cap, fdv: r.fully_diluted_valuation,
+          circ: r.circulating_supply, max: r.max_supply, rank: r.market_cap_rank});
+      }
+    }
+  } catch (e) {
+    for (const [sym] of PAIRS) (FUND[sym] = FUND[sym] || {}).err =
+      "CoinGecko unreachable/rate-limited — add a free demo key at the top of the file";
+  }
+  for (const [sym] of PAIRS) if (FUND[sym]) fundAnalyse(sym, FUND[sym]);
+}
+
+const big = v => v == null ? "—" :
+  v >= 1e12 ? "$" + (v/1e12).toFixed(2) + "T" :
+  v >= 1e9 ? "$" + (v/1e9).toFixed(1) + "B" :
+  v >= 1e6 ? "$" + (v/1e6).toFixed(0) + "M" : "$" + Math.round(v).toLocaleString();
+
+function renderFundamentalsEquity(sym, name) {
+  const wrap = el("div");
+  wrap.appendChild(el("h3", "dh3", "Fundamentals"));
+  const f = FUNDX[sym];
+  const meta = INSTR[sym] || {};
+  if (!f) {
+    wrap.appendChild(el("p", "dp",
+      "Fundamental data not loaded — it ships with the hosted (GitHub Pages) build."));
+    return wrap;
+  }
+  if (f.desc) wrap.appendChild(el("p", "dp", f.desc));
+  if (f.cls === "stock") {
+    const pct = v => v == null ? "—" : (v * 100).toFixed(0) + "%";
+    const lv = el("div", "lvls");
+    [["P/E", f.pe ? f.pe.toFixed(1) : "—"],
+     ["Forward P/E", f.fpe ? f.fpe.toFixed(1) : "—"],
+     ["EPS", f.eps != null ? f.eps.toFixed(2) : "—"],
+     ["EPS growth", pct(f.epsG)],
+     ["Revenue growth", pct(f.revG)],
+     ["Net margin", pct(f.margin)],
+     ["Debt/Equity", f.de != null ? f.de.toFixed(0) + "%" : "—"],
+     ["Dividend yield", f.divY != null ? f.divY.toFixed(1) + "%" : "—"],
+     ["Analyst target", f.target && f.price ?
+        fmt(f.target) + " (" + ((f.target/f.price - 1) * 100).toFixed(0) + "%)" : "—"],
+     ["Market cap", big(f.mcap)],
+    ].forEach(([l, v]) => {
+      const d = el("div");
+      d.appendChild(el("span", "l", l));
+      d.appendChild(el("span", null, v));
+      lv.appendChild(d);
+    });
+    wrap.appendChild(lv);
+  }
+  (f.flags || []).forEach(t => wrap.appendChild(el("p", "dp", t)));
+  const links = el("p", "dp");
+  const a = el("a", "tvlink", "Yahoo Finance ↗");
+  a.href = "https://finance.yahoo.com/quote/" + encodeURIComponent(sym);
+  a.target = "_blank"; a.rel = "noopener";
+  links.appendChild(a);
+  links.appendChild(el("span", "conf",
+    " Fundamental score " + (f.score >= 0 ? "+" : "") + (f.score || 0) +
+    " (feeds ±9 into conviction)" +
+    (f.cls !== "stock" ? " — for this asset class the news/calendar layer is the fundamentals" : "")));
+  wrap.appendChild(links);
+  return wrap;
+}
+
+function renderFundamentals(sym, name) {
+  if (INSTR[sym] && INSTR[sym].cls !== "crypto")
+    return renderFundamentalsEquity(sym, name);
+  const wrap = el("div");
+  wrap.appendChild(el("h3", "dh3", "Fundamentals — what this asset is, and the supply math"));
+  const f = FUND[sym];
+  wrap.appendChild(el("p", "dp", DESCRIPTIONS[sym] || "No description on file."));
+  if (!f || (!f.mcap && !f.tvl)) {
+    wrap.appendChild(el("p", "dp", "⚠ Fundamental data unavailable right now" +
+      (f && f.err ? " — " + f.err : "") + "."));
+    return wrap;
+  }
+  const lv = el("div", "lvls");
+  [["Market cap", big(f.mcap) + (f.rank ? " · #" + f.rank : "")],
+   ["FDV", big(f.fdv)],
+   ["FDV / Mcap", f.fdv && f.mcap ? (f.fdv/f.mcap).toFixed(2) + "×" : "—"],
+   ["Circulating", f.circ ? (f.circ >= 1e9 ? (f.circ/1e9).toFixed(2) + "B" :
+      (f.circ/1e6).toFixed(0) + "M") + (f.max ? " / " + (f.max >= 1e9 ?
+      (f.max/1e9).toFixed(2) + "B" : (f.max/1e6).toFixed(0) + "M") : " (no cap)") : "—"],
+   ["Chain TVL", f.tvl != null ? big(f.tvl) : "n/a"],
+   ["TVL / Mcap", f.tvl && f.mcap ? (f.tvl/f.mcap*100).toFixed(0) + "%" : "—"],
+  ].forEach(([l, v]) => {
+    const d = el("div");
+    d.appendChild(el("span", "l", l));
+    d.appendChild(el("span", null, v));
+    lv.appendChild(d);
+  });
+  wrap.appendChild(lv);
+  (f.flags || []).forEach(t => wrap.appendChild(el("p", "dp", t)));
+  const links = el("p", "dp");
+  const mk = (txt, href) => { const a = el("a", "tvlink", txt);
+    a.href = href; a.target = "_blank"; a.rel = "noopener"; a.style.marginRight = "8px";
+    links.appendChild(a); };
+  const gid = GECKO_IDS[sym];
+  if (LLAMA_CHAIN[sym]) mk("DeFiLlama ↗", "https://defillama.com/chain/" + LLAMA_CHAIN[sym]);
+  if (gid) mk("CoinGecko ↗", "https://www.coingecko.com/en/coins/" + gid);
+  mk("Unlocks / vesting ↗", "https://defillama.com/unlocks");
+  links.appendChild(el("span", "conf",
+    " Fundamental score " + (f.score >= 0 ? "+" : "") + f.score +
+    " (feeds ±9 into conviction)"));
+  wrap.appendChild(links);
+  return wrap;
+}
+/* ============ UI STATE ============ */
+let activeStrat = null;         // strategy key or null
+let scanCache = {};             // latest scanStrategies() output
+let sel = null;                 // {sym, tfKey, dir, plan, stratName}
+let account = 10000, riskPct = 1;
+
+/* universe tab bar (News is a pseudo-tab) */
+let logicView = false, perfView = false;
+function renderUniTabs() {
+  const bar = $("#unitabs");
+  bar.textContent = "";
+  UNIVERSES.concat([{key: "__news", label: "📰 News"},
+                    {key: "__perf", label: "📊 Performance"},
+                    {key: "__logic", label: "📖 Logic"}]).forEach(u => {
+    const b = el("button", null, u.label);
+    b.type = "button";
+    const sel = u.key === "__news" ? newsView :
+      u.key === "__logic" ? logicView :
+      u.key === "__perf" ? perfView :
+      (!newsView && !logicView && !perfView && activeUni === u.key);
+    b.setAttribute("aria-selected", sel ? "true" : "false");
+    b.addEventListener("click", async () => {
+      newsView = logicView = perfView = false;
+      if (u.key === "__news") newsView = true;
+      else if (u.key === "__logic") logicView = true;
+      else if (u.key === "__perf") perfView = true;
+      else {
+        activeUni = u.key;
+        if (u.key !== "crypto" && !(UNI_STATE[u.key] && UNI_STATE[u.key].loadedAt)) {
+          renderUniTabs(); showUniState();
+          await loadUniverse(u.key);
+          detectEvents();
+        }
+      }
+      renderUniTabs(); showUniState(); renderAll(); renderNewsView(); renderPerf();
+    });
+    bar.appendChild(b);
+  });
+  const any = newsView || logicView || perfView;
+  $("#view-market").hidden = any;
+  $("#view-news").hidden = !newsView;
+  $("#view-logic").hidden = !logicView;
+  $("#view-perf").hidden = !perfView;
+}
+
+/* ============ PERFORMANCE TAB ============ */
+function renderPerf() {
+  if (!perfView) return;
+  const box = $("#perfbox");
+  box.textContent = "";
+  box.appendChild(el("h2", null,
+    "📊 Performance — every ≥70-conviction pick the system has made, tracked to its outcome"));
+  const j = JOURNALD.data;
+  if (!j) { box.appendChild(el("div", "conf", "ℹ " + (JOURNALD.err || "Loading…"))); return; }
+  const closed = j.closed || [], open = j.open || [];
+  const wins = closed.filter(c => c.r > 0);
+  const sumR = closed.reduce((a, c) => a + (c.r || 0), 0);
+  const tiles = el("div", "lvls");
+  [["Picks tracked", String(closed.length + open.length)],
+   ["Closed", String(closed.length)],
+   ["Win rate", closed.length ? (wins.length / closed.length * 100).toFixed(0) + "%" : "—"],
+   ["Avg R / trade", closed.length ? (sumR / closed.length).toFixed(2) + "R" : "—"],
+   ["Total R", (sumR >= 0 ? "+" : "") + sumR.toFixed(1) + "R"],
+   ["At 0.5% risk each", closed.length ? (sumR * 0.5 >= 0 ? "+" : "") +
+      (sumR * 0.5).toFixed(1) + "% of account" : "—"],
+  ].forEach(([l, v]) => {
+    const d = el("div");
+    d.appendChild(el("span", "l", l));
+    d.appendChild(el("span", null, v));
+    tiles.appendChild(d);
+  });
+  box.appendChild(tiles);
+  box.appendChild(el("div", "legend",
+    "Outcomes use the thirds model the tickets recommend: ⅓ off at each TP, stop to " +
+    "break-even after TP1. SL = −1R · BE = +0.33R · TP2 then stopped = +1R · TP3 = +2R. " +
+    "Below ~30 closed trades these numbers are noise, not truth — let it accumulate " +
+    "before drawing conclusions. This is exactly the evidence that calibrates conviction."));
+  /* calibration by conviction bucket + by type */
+  const bucketTbl = (title, keyFn) => {
+    const groups = {};
+    closed.forEach(c => { const k = keyFn(c); (groups[k] = groups[k] || []).push(c); });
+    if (!Object.keys(groups).length) return;
+    box.appendChild(el("h3", "dh3", title));
+    const t = el("table", "ticket");
+    const hr = el("tr");
+    ["Group", "Closed", "Win rate", "Avg R"].forEach(h => {
+      const td = el("td", null, h); td.style.color = "var(--muted)"; hr.appendChild(td); });
+    t.appendChild(hr);
+    Object.keys(groups).sort().forEach(k => {
+      const g = groups[k], w = g.filter(c => c.r > 0).length;
+      const avg = g.reduce((a, c) => a + (c.r || 0), 0) / g.length;
+      const tr = el("tr");
+      [k, String(g.length), (w / g.length * 100).toFixed(0) + "%",
+       (avg >= 0 ? "+" : "") + avg.toFixed(2) + "R"].forEach(v =>
+        tr.appendChild(el("td", null, v)));
+      t.appendChild(tr);
+    });
+    box.appendChild(t);
+  };
+  bucketTbl("Calibration by conviction", c =>
+    c.conv >= 90 ? "90–100" : c.conv >= 80 ? "80–89" : "70–79");
+  bucketTbl("By trade type", c => c.type || "—");
+  bucketTbl("By asset class", c => c.cls || "—");
+  /* open + recent closed lists */
+  const list = (title, rows, fmtRow) => {
+    if (!rows.length) return;
+    box.appendChild(el("h3", "dh3", title));
+    rows.forEach(r => box.appendChild(el("div", "dp", fmtRow(r))));
+  };
+  list("Open (being tracked)", open.slice(-15).reverse(), p =>
+    `${p.dir === 1 ? "🟢" : "🔴"} ${p.name} · ${p.strat} · ${p.tfKey} · conv ${p.conv} · ` +
+    `entry ${fmt(p.entry)} · SL ${fmt(p.sl)} · TPs hit: ${p.tpHit || 0} · since ${ukTime(p.ts)} UK`);
+  list("Recently closed", closed.slice(-15).reverse(), c =>
+    `${c.r > 0 ? "✅" : c.r < 0 ? "❌" : "➖"} ${c.name} ${c.dir === 1 ? "long" : "short"} · ` +
+    `${c.outcome} → ${c.r >= 0 ? "+" : ""}${c.r}R · conv ${c.conv} · ${c.strat}`);
+}
+
+function showUniState() {
+  const box = $("#unierr");
+  const st = UNI_STATE[activeUni];
+  if (!newsView && activeUni !== "crypto" && st && st.err) {
+    box.style.display = "block"; box.textContent = "ℹ " + st.err;
+  } else if (!newsView && activeUni !== "crypto" && !(st && st.loadedAt)) {
+    box.style.display = "block"; box.textContent = "Loading " + activeUni + " data…";
+  } else box.style.display = "none";
+}
+
+$("#statbtn").addEventListener("click", () => {
+  const box = $("#inspector");
+  box.hidden = !box.hidden;
+  renderInspector();
+});
+$("#themebtn").addEventListener("click", () => {
+  const cur = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+  document.documentElement.dataset.theme = cur;
+  if (sel) renderDetail();   // re-embed TV widget with matching theme
+});
+
+/* ============ RENDER: alerts, strategies, picks, matrix ============ */
+function renderAlerts() {
+  const box = $("#alerts");
+  box.textContent = "";
+  if (!ALERTS.length) {
+    box.appendChild(el("span", "conf",
+      "Watching for squeezes, volume anomalies, structure breaks and liquidity sweeps…"));
+    return;
+  }
+  ALERTS.slice(0, 12).forEach(a => {
+    const d = el("div", "alert");
+    d.appendChild(el("span", "t", ukTime(a.time)));
+    d.appendChild(document.createTextNode(a.icon + " "));
+    const b = el("b", null, a.text);
+    d.appendChild(b);
+    box.appendChild(d);
+  });
+}
+
+function renderStrats() {
+  const row = $("#stratrow");
+  row.textContent = "";
+  STRATEGIES.forEach(st => {
+    const matches = scanCache[st.key] || [];
+    const b = el("button", "strat" + (activeStrat === st.key ? " on" : ""));
+    b.type = "button";
+    const n = el("span", "n", matches.length + (activeStrat === st.key ? " ✓" : ""));
+    b.appendChild(document.createTextNode(st.icon + " " + st.name));
+    b.appendChild(n);
+    b.appendChild(el("span", "d", st.desc));
+    b.addEventListener("click", () => {
+      activeStrat = activeStrat === st.key ? null : st.key;
+      renderStrats(); renderPicks(); renderMatrix();
+    });
+    row.appendChild(b);
+  });
+  $("#stratnote").textContent = activeStrat
+    ? `Active: ${STRATEGIES.find(s=>s.key===activeStrat).name} — picks & matrix filtered to its matches. Click again to clear.`
+    : "Click a strategy to filter picks & matrix to its matches; click again to clear.";
+}
+
+function allMatches() {
+  const best = {};
+  for (const st of STRATEGIES)
+    for (const m of (scanCache[st.key] || []))
+      if (!best[m.sym] || m.conv > best[m.sym].conv) best[m.sym] = m;
+  for (const m of alignmentPicks())
+    if (!best[m.sym] || m.conv > best[m.sym].conv) best[m.sym] = m;
+  return Object.values(best).sort((a,b) => b.conv - a.conv);
+}
+
+function renderPicks() {
+  const box = $("#picks");
+  box.textContent = "";
+  const minConv = $("#hiconv").checked ? 70 : 55;
+  const list = (activeStrat ? (scanCache[activeStrat] || []) : allMatches())
+    .filter(m => m.conv >= minConv);
+  if (!list.length) {
+    box.appendChild(el("div", "conf", activeStrat
+      ? `No pair meets this strategy's conditions at ≥${minConv} conviction right now — that's the honest answer, not a bug.`
+      : `No ≥${minConv}-conviction trade right now. Flat is a position — the matrix below shows every pair's bias while you wait.` +
+        ($("#hiconv").checked ? " Untick the box to see the 55–69 watchlist." : "")));
+    return;
+  }
+  /* correlation / heat guard: clustered same-direction picks are ONE bet */
+  const shown = list.slice(0, 8), buckets = {};
+  shown.forEach(m => {
+    const meta = INSTR[m.sym] || {};
+    const b = (meta.cls === "crypto" ? "crypto" : meta.cls === "fx" ? "FX" :
+      meta.cls === "commodity" ? "commodity·" + (meta.sector || "") :
+      meta.cls === "index" ? "indices" : "stocks·" + (meta.sector || "")) +
+      (m.dir === 1 ? " longs" : " shorts");
+    (buckets[b] = buckets[b] || []).push(iName(m.sym));
+  });
+  for (const [b, names] of Object.entries(buckets)) {
+    const lim = b.startsWith("crypto") ? 2 : 3;
+    if (names.length >= lim) {
+      const w = el("div", "conf",
+        `⚠ Concentration: ${names.length} correlated picks (${b}: ${names.join(", ")}). ` +
+        `They will likely win or lose together — size them as ONE position, not ${names.length}.`);
+      w.style.color = "var(--warn)"; w.style.marginBottom = "8px";
+      box.appendChild(w);
+    }
+  }
+  shown.forEach(m => {
+    const name = iName(m.sym);
+    const side = m.dir === 1 ? "LONG" : "SHORT";
+    const card = el("button", "pick");
+    card.type = "button";
+    const hd = el("div", "hd");
+    hd.appendChild(el("span", "nm", name));
+    hd.appendChild(el("span", "badge " + side, (m.dir===1?"▲ ":"▼ ") + side));
+    card.appendChild(hd);
+    card.appendChild(el("div", "conf",
+      `${m.strat.icon} ${m.strat.name} · signal TF ${m.tfKey} · conviction ${m.conv}/100`));
+    if (m.prof && m.prof.type !== "MIXED")
+      card.appendChild(el("div", "conf",
+        `${m.prof.meta.icon} ${m.prof.type} trade · hold ${m.prof.meta.hold} · ` +
+        `manage on ${m.prof.meta.manage} · TP2 ${estTp2(m.tfKey)}`));
+    const why = el("div", "why");
+    m.tags.forEach(t => why.appendChild(el("span", null, t)));
+    card.appendChild(why);
+    const p = m.plan;
+    const lv = el("div", "lvls");
+    [["Entry zone", fmt(p.eLo) + "–" + fmt(p.eHi), ""],
+     ["SL (" + p.slNote + ")", fmt(p.sl), "sl"],
+     ["TP1 / 1R", fmt(p.tp1), "tp"],
+     ["TP2 / 2R", fmt(p.tp2), "tp"],
+     ["TP3 / 3R", fmt(p.tp3), "tp"],
+     ["R:R to TP2", "2.0", ""]].forEach(([l, v, cls]) => {
+      const d = el("div");
+      d.appendChild(el("span", "l", l));
+      d.appendChild(el("span", cls || null, v));
+      lv.appendChild(d);
+    });
+    card.appendChild(lv);
+    const conv = el("div", "convrow");
+    conv.appendChild(el("span", null, "Conviction"));
+    const bar = el("span", "convbar");
+    const fill = el("i");
+    fill.style.width = m.conv + "%";
+    fill.style.background = m.conv >= 70 ? "var(--good)" : m.conv >= 45 ? "var(--warn)" : "var(--muted)";
+    bar.appendChild(fill);
+    conv.appendChild(bar);
+    conv.appendChild(el("span", "convlbl", m.conv >= 70 ? "HIGH" : m.conv >= 45 ? "MEDIUM" : "LOW"));
+    card.appendChild(conv);
+    const riskUSD = account * riskPct / 100;
+    const qty = riskUSD / p.risk;
+    card.appendChild(el("div", "conf",
+      `On $${account.toLocaleString()} @ ${riskPct}% risk ($${riskUSD.toFixed(0)}): ` +
+      `TP1 +$${(qty*p.risk*1/3).toFixed(0)} · TP2 +$${(qty*p.risk*2/3).toFixed(0)} · ` +
+      `TP3 +$${(qty*p.risk*3/3).toFixed(0)} · all ≈ +$${(qty*p.risk*2).toFixed(0)}`));
+    card.addEventListener("click", () => openDetail(m.sym, m.tfKey, m.dir, m));
+    box.appendChild(card);
+  });
+}
+$("#hiconv").addEventListener("change", renderPicks);
+
+function cellEl(sym, tf, f) {
+  const td = el("td");
+  const c = el("span", "cell");
+  if (!f) { c.textContent = "…"; c.style.color = "var(--muted)"; td.appendChild(c); return td; }
+  const s = f.score;
+  const a = Math.min(Math.abs(s)/5, 1) * 0.55 + 0.08;
+  c.style.background = s > 0 ? `rgba(12,163,12,${a})` :
+    s < 0 ? `rgba(208,59,59,${a})` : "rgba(137,135,129,.15)";
+  let txt = (s > 0 ? "▲" : s < 0 ? "▼" : "−") + (s ? Math.abs(s) : "");
+  if (f.released || f.inSqueeze) txt += " 🧨";
+  if (f.volZ > 2) txt += " ⚡";
+  c.textContent = txt;
+  c.title = `RSI ${f.rsi.toFixed(0)} · ${f.aboveE50 ? "above" : "below"} 50EMA` +
+    (f.inSqueeze ? " · in squeeze" : "") + (f.released ? " · squeeze fired" : "");
+  c.addEventListener("click", () =>
+    openDetail(sym, tf.key, s !== 0 ? Math.sign(s) : 1, null));
+  td.appendChild(c);
+  return td;
+}
+
+function uniTfs() {
+  return activeUni === "crypto" ? TFS : TFS.filter(t => t.key !== "5m");
+}
+
+function renderMatrix() {
+  const tbl = $("#mtx");
+  tbl.textContent = "";
+  const tfs = uniTfs();
+  const hr = el("tr");
+  hr.appendChild(el("th", null, "Instrument"));
+  tfs.forEach(tf => hr.appendChild(el("th", null, tf.key)));
+  tbl.appendChild(hr);
+  let rows = curSyms().map(sym => ({sym, name: iName(sym), cv: confluence(sym)}))
+    .sort((a,b) => (b.cv ? Math.abs(b.cv.raw) : -1) - (a.cv ? Math.abs(a.cv.raw) : -1));
+  if (activeStrat) {
+    const set = new Set((scanCache[activeStrat] || []).map(m => m.sym));
+    rows = rows.filter(r => set.has(r.sym));
+  }
+  const label = (UNIVERSES.find(u => u.key === activeUni) || {}).label || "";
+  $("#mtxtitle").textContent = `🗺 ${label} — ${rows.length} instruments × ${tfs.length} timeframes`;
+  rows.forEach(r => {
+    const meta = INSTR[r.sym] || {};
+    const tr = el("tr");
+    const td = el("td");
+    td.appendChild(document.createTextNode(r.name));
+    const tk = TICKERS[r.sym];
+    if (tk) td.appendChild(el("span", "pr",
+      fmt(tk.last) + " " + (tk.chg24 >= 0 ? "▲" : "▼") + Math.abs(tk.chg24).toFixed(1) + "%"));
+    const sub = [meta.sector || meta.cls,
+      meta.cls === "stock" && !meta.ig ? "analysis-only" :
+      meta.cls !== "crypto" ? "IG ✓" : "Bybit",
+      "confluence " + (r.cv ? (r.cv.dir === 1 ? "+" : "−") + r.cv.conv : "…")]
+      .filter(Boolean).join(" · ");
+    td.appendChild(el("span", "g", sub));
+    td.addEventListener("click", () =>
+      openDetail(r.sym, "1H", r.cv ? r.cv.dir : 1, null));
+    tr.appendChild(td);
+    tfs.forEach(tf => {
+      const cell = DATA[r.sym] && DATA[r.sym][tf.key];
+      tr.appendChild(cellEl(r.sym, tf, cell && cell.feats));
+    });
+    tbl.appendChild(tr);
+  });
+}
+
+/* ============ NEWS VIEW ============ */
+const nf = {domain: "all", sector: "all", region: "all"};
+function chiprow(elId, values, key) {
+  const box = $(elId);
+  box.textContent = "";
+  [["all", elId === "#nfDomain" ? "All domains" :
+      elId === "#nfSector" ? "All sectors" : "All regions"]]
+    .concat(values.map(v => [v, v])).forEach(([val, lbl]) => {
+    const c = el("button", "nchip", lbl);
+    c.type = "button";
+    c.setAttribute("aria-pressed", nf[key] === val ? "true" : "false");
+    c.addEventListener("click", () => { nf[key] = val; renderNewsView(); });
+    box.appendChild(c);
+  });
+}
+function renderNewsView() {
+  if (!newsView) return;
+  const items = NEWS.items || [];
+  chiprow("#nfDomain", [...new Set(items.map(x => x.domain))].sort(), "domain");
+  chiprow("#nfSector", [...new Set(items.filter(x => x.sector).map(x => x.sector))].sort(), "sector");
+  chiprow("#nfRegion", [...new Set(items.map(x => x.region))].sort(), "region");
+  const list = $("#newslist");
+  list.textContent = "";
+  if (NEWS.err) { list.appendChild(el("div", "conf", "ℹ " + NEWS.err)); return; }
+  const shown = items.filter(x =>
+    (nf.domain === "all" || x.domain === nf.domain) &&
+    (nf.sector === "all" || x.sector === nf.sector) &&
+    (nf.region === "all" || x.region === nf.region)).slice(0, 80);
+  if (!shown.length) { list.appendChild(el("div", "conf", "No headlines match those filters.")); return; }
+  shown.forEach(x => {
+    const d = el("div", "nitem");
+    const a = el("a", null, x.title);
+    a.href = x.link; a.target = "_blank"; a.rel = "noopener noreferrer";
+    d.appendChild(a);
+    const tags = el("div", "ntags");
+    tags.appendChild(el("span", "ntag", x.domain + (x.sector ? " › " + x.sector : "")));
+    tags.appendChild(el("span", "ntag", x.region));
+    tags.appendChild(document.createTextNode(x.src + " · " + ukTime(x.t) + " UK "));
+    (x.instruments || []).forEach(id => {
+      if (!INSTR[id]) return;
+      const s = el("span", "ninst", " " + iName(id));
+      s.addEventListener("click", ev => { ev.preventDefault();
+        const cv = confluence(id);
+        openDetail(id, INSTR[id].cls === "crypto" ? "1H" : "1H", cv ? cv.dir : 1, null); });
+      tags.appendChild(s);
+    });
+    d.appendChild(tags);
+    list.appendChild(d);
+  });
+}
+
+/* ============ DETAIL OVERLAY ============ */
+function openDetail(sym, tfKey, dir, match) {
+  const plan = match ? match.plan : buildPlan(sym, tfKey, dir);
+  const prof = match && match.prof ? match.prof : mtfProfile(sym);
+  sel = {sym, tfKey, dir, plan, prof,
+    stratName: match ? match.strat.icon + " " + match.strat.name : "Manual inspection",
+    conv: match ? match.conv : (prof ? prof.conv : 40)};
+  renderDetail();
+  $("#ovl").classList.add("open");
+}
+function closeDetail() { $("#ovl").classList.remove("open"); sel = null; }
+$("#ovl").addEventListener("click", e => { if (e.target === $("#ovl")) closeDetail(); });
+addEventListener("keydown", e => { if (e.key === "Escape") closeDetail(); });
+
+function renderDetail() {
+  if (!sel) return;
+  const {sym, tfKey, dir, plan} = sel;
+  const name = iName(sym);
+  const side = dir === 1 ? "LONG" : "SHORT";
+  const p = $("#dpanel");
+  p.textContent = "";
+  const hd = el("div", "dhd");
+  hd.appendChild(el("b", null, name));
+  hd.appendChild(el("span", "badge " + side, (dir===1?"▲ ":"▼ ") + side));
+  hd.appendChild(el("span", "conf", sel.stratName + " · " + tfKey));
+  const tvSym = (INSTR[sym] && INSTR[sym].tv) || sym;
+  const tvA = el("a", "tvlink", "Open in TradingView ↗");
+  tvA.href = "https://www.tradingview.com/chart/?symbol=" + encodeURIComponent(tvSym);
+  tvA.target = "_blank"; tvA.rel = "noopener";
+  hd.appendChild(tvA);
+  const closeBtn = el("button", "close", "✕ Close");
+  closeBtn.type = "button";
+  closeBtn.addEventListener("click", closeDetail);
+  hd.appendChild(closeBtn);
+  p.appendChild(hd);
+
+  const conv = el("div", "convrow");
+  conv.appendChild(el("span", null, "Conviction"));
+  const bar = el("span", "convbar");
+  const fill = el("i");
+  fill.style.width = sel.conv + "%";
+  fill.style.background = sel.conv >= 70 ? "var(--good)" : sel.conv >= 45 ? "var(--warn)" : "var(--muted)";
+  bar.appendChild(fill);
+  conv.appendChild(bar);
+  conv.appendChild(el("span", "convlbl",
+    (sel.conv >= 70 ? "HIGH" : sel.conv >= 45 ? "MEDIUM" : "LOW") + " · " + sel.conv + "/100"));
+  p.appendChild(conv);
+  if (sel.prof && sel.prof.type !== "MIXED") {
+    const gTxt = [["LTF", sel.prof.gL], ["MTF", sel.prof.gM], ["HTF", sel.prof.gH]]
+      .map(([k, g]) => `${k} ${g >= 0 ? "+" : "−"}${Math.round(Math.abs(g)*100)}`).join(" · ");
+    p.appendChild(el("div", "conf",
+      `${sel.prof.meta.icon} ${sel.prof.type} trade — hold ${sel.prof.meta.hold} · ` +
+      `manage on ${sel.prof.meta.manage} · est. TP2 ${estTp2(sel.tfKey)} · groups: ${gTxt} · ${sel.prof.note}`));
+  } else if (sel.prof) {
+    p.appendChild(el("div", "conf",
+      `⚠ MIXED profile — timeframe groups conflict (${sel.prof.note}). This is inspection, not a trade.`));
+  }
+
+  /* TV live chart — NSE/BSE data is not licensed for anonymous embeds */
+  const noEmbed = /^(NSE|BSE):/.test(tvSym);
+  if (noEmbed) {
+    p.appendChild(el("div", "legend",
+      "🇮🇳 Indian exchange data can't be shown in embedded charts (NSE licensing). " +
+      "The annotated system chart below has the full picture, and “Open in TradingView” " +
+      "shows the live NSE chart in your own logged-in account."));
+  } else {
+    const tvbox = el("div", "tvbox");
+    const theme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+    const ivMap = {"5m":"5","15m":"15","30m":"30","1H":"60","4H":"240","D":"D","W":"W","Q":"M"};
+    const ifr = document.createElement("iframe");
+    ifr.title = "TradingView live chart";
+    ifr.src = "https://s.tradingview.com/widgetembed/?symbol=" + encodeURIComponent(tvSym) +
+      "&interval=" + (ivMap[tfKey] || "60") + "&theme=" + theme +
+      "&style=1&hidesidetoolbar=0&hidetoptoolbar=0&withdateranges=1&saveimage=0&locale=en";
+    tvbox.appendChild(ifr);
+    p.appendChild(tvbox);
+    p.appendChild(el("div", "legend",
+      "Live TradingView chart. Use “Open in TradingView” to load your own SMC toolkit on it."));
+  }
+
+  /* timeframe switch + annotated chart */
+  const tfrow = el("div", "tfrow");
+  TFS.forEach(tf => {
+    const b = el("button", "tf" + (tf.key === tfKey ? " on" : ""), tf.key);
+    b.type = "button";
+    b.addEventListener("click", () => { sel.tfKey = tf.key;
+      sel.plan = buildPlan(sym, tf.key, dir); renderDetail(); });
+    tfrow.appendChild(b);
+  });
+  p.appendChild(tfrow);
+  const cell = DATA[sym] && DATA[sym][sel.tfKey];
+  if (cell && cell.feats) p.appendChild(annotatedChart(cell, name, sel.tfKey));
+
+  /* MA distance / rubber-band meter */
+  if (cell && cell.feats && cell.feats.maDist && cell.feats.maDist.length) {
+    p.appendChild(el("h3", "dh3",
+      `Distance from moving averages (${sel.tfKey}) — the rubber-band meter`));
+    const t = el("table", "ticket");
+    const hr = el("tr");
+    ["MA", "Level", "Distance", "×ATR", "How rare is this stretch?"].forEach(h => {
+      const td = el("td", null, h); td.style.color = "var(--muted)"; hr.appendChild(td);
+    });
+    t.appendChild(hr);
+    cell.feats.maDist.forEach(m => {
+      const tr = el("tr");
+      tr.appendChild(el("td", null, m.label));
+      tr.appendChild(el("td", null, fmt(m.value)));
+      tr.appendChild(el("td", null, (m.pct >= 0 ? "+" : "") + m.pct.toFixed(1) + "%"));
+      tr.appendChild(el("td", null, (m.atr >= 0 ? "+" : "") + m.atr.toFixed(1)));
+      const ptd = el("td");
+      if (m.pctl != null) {
+        const bad = m.pctl >= 90, warm = m.pctl >= 75;
+        const b = el("b", null,
+          `p${m.pctl}` + (bad ? " · EXTREME — rarely this stretched" :
+            warm ? " · stretched" : " · normal"));
+        b.style.color = bad ? "var(--crit)" : warm ? "var(--warn)" : "var(--muted)";
+        ptd.appendChild(b);
+      } else ptd.textContent = "—";
+      tr.appendChild(ptd);
+      t.appendChild(tr);
+    });
+    p.appendChild(t);
+    p.appendChild(el("div", "legend",
+      "p90+ in the trade's direction = the rubber band is taut: historically this instrument " +
+      "rarely gets further from that MA before snapping back — favour the pullback entry, or " +
+      "take partial profits if already in. Honest caveat: strong trends CAN stay extended for a " +
+      "long time, so a high percentile argues for patience and tighter management, not an " +
+      "automatic reversal trade."));
+  }
+
+  /* case + ticket */
+  const cols = el("div", "detailcols");
+  const left = el("div");
+  left.appendChild(el("h3", "dh3", `Why ${side.toLowerCase()} — the system's case`));
+  buildCase(sym, sel.tfKey, dir).forEach(t => left.appendChild(el("p", "dp", t)));
+  left.appendChild(el("p", "dp",
+    `Invalidation: a decisive ${dir === 1 ? "close below" : "close above"} ${fmt(plan.inval)} kills the setup.`));
+  cols.appendChild(left);
+  const right = el("div");
+  right.appendChild(el("h3", "dh3", "Ticket — Bybit / Revolut sizing"));
+  const tin = el("div", "tin");
+  const mk = (lbl, val, cb) => {
+    const w = el("label", null, lbl + " ");
+    const inp = document.createElement("input");
+    inp.type = "number"; inp.value = val;
+    inp.addEventListener("change", () => { cb(+inp.value || val); renderDetail(); });
+    w.appendChild(inp); return w;
+  };
+  tin.appendChild(mk("Account $", account, v => account = v));
+  tin.appendChild(mk("Risk %", riskPct, v => riskPct = v));
+  right.appendChild(tin);
+  const meta = INSTR[sym] || {};
+  const riskUSD = account * riskPct / 100;
+  const t = el("table", "ticket");
+  const row = (a, b, cls) => {
+    const tr = el("tr");
+    tr.appendChild(el("td", cls || null, a));
+    tr.appendChild(el("td", cls || null, b));
+    t.appendChild(tr);
+  };
+  row("Risk per trade (" + riskPct + "%)", "$" + riskUSD.toFixed(0));
+  row("Entry (zone mid)", fmt(plan.entry) + "  (" + plan.entryNote + ")");
+  if (meta.cls === "crypto") {
+    const qty = riskUSD / plan.risk;
+    row("Position size", qty.toPrecision(4) + " " + sym.replace("USDT","") +
+      "  (≈$" + (qty*plan.entry).toFixed(0) + ") · Bybit/Revolut");
+  } else if (meta.ig) {
+    const stake = riskUSD / plan.risk;   // per point, in account currency
+    const factor = meta.cls === "stock" ? 0.20 : 0.05;
+    row("IG stake", stake < 0.1 ? stake.toFixed(3) : stake.toFixed(2) +
+      " per point  (stop " + fmt(plan.risk) + " pts away)");
+    row("Est. margin (" + (factor*100) + "%)",
+      "≈$" + (stake * plan.entry * factor).toFixed(0));
+  } else {
+    const shares = riskUSD / plan.risk;
+    row("Position size", shares.toFixed(1) + " shares (≈" +
+      fmt(shares * plan.entry) + ") · analysis-only: not an IG market");
+  }
+  row("If SL " + fmt(plan.sl) + " hit", "−$" + riskUSD.toFixed(0) + " (−" + riskPct + "%)", "slt");
+  row("TP1 " + fmt(plan.tp1) + " (⅓ off)", "+$" + (riskUSD/3).toFixed(0) + " · stop → BE", "tpt");
+  row("TP2 " + fmt(plan.tp2) + " (⅓ off)", "+$" + (riskUSD*2/3).toFixed(0), "tpt");
+  row("TP3 " + fmt(plan.tp3) + " (final ⅓)", "+$" + (riskUSD).toFixed(0), "tpt");
+  row("All targets hit", "+$" + (riskUSD*2).toFixed(0) +
+    " (+" + (riskPct*2).toFixed(1) + "%) · R:R 2.0 blended");
+  right.appendChild(t);
+  right.appendChild(el("div", "legend",
+    "Sized from the stop: a full stop-out always costs exactly your chosen risk %. " +
+    (meta.ig ? "IG estimate excludes spread and overnight funding; margin factors vary by market."
+             : "No leverage assumed.")));
+  cols.appendChild(right);
+  p.appendChild(cols);
+  p.appendChild(renderFundamentals(sym, name));
+  const trail = (NEWS.items || []).filter(x =>
+    (x.instruments || []).includes(sym)).slice(0, 6);
+  if (trail.length) {
+    const nt = el("div", "newstrail");
+    nt.appendChild(el("h3", "dh3", "News trail — headlines tagged to " + name));
+    trail.forEach(x => {
+      const d = el("div", "nitem");
+      const a = el("a", null, x.title);
+      a.href = x.link; a.target = "_blank"; a.rel = "noopener noreferrer";
+      d.appendChild(a);
+      d.appendChild(el("div", "ntags",
+        `${x.domain}${x.sector ? " › " + x.sector : ""} · ${x.region} · ${x.src} · ${ukTime(x.t)} UK`));
+      nt.appendChild(d);
+    });
+    p.appendChild(nt);
+  }
+}
+
+/* annotated SVG chart from real features */
+function annotatedChart(cell, name, tfKey) {
+  const candles = cell.candles.slice(-90), f = cell.feats;
+  const NSVG = "http://www.w3.org/2000/svg";
+  const W = 900, H = 360, PL = 8, PR = 110, PT = 14, PB = 70;
+  const iw = W-PL-PR, ih = H-PT-PB;
+  const lo = Math.min(...candles.map(c=>c.l)), hi = Math.max(...candles.map(c=>c.h));
+  const X = i => PL + iw * (i/(candles.length-1));
+  const Y = v => PT + ih * (1-(v-lo)/(hi-lo || 1));
+  const svg = document.createElementNS(NSVG, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const A = (tag, at, txt) => {
+    const e = document.createElementNS(NSVG, tag);
+    for (const k in at) e.setAttribute(k, at[k]);
+    if (txt) e.textContent = txt;
+    svg.appendChild(e); return e;
+  };
+  for (let g = 0; g <= 3; g++) {
+    const v = lo + (hi-lo)*g/3, y = Y(v);
+    A("line", {x1:PL, x2:PL+iw, y1:y, y2:y, stroke:"var(--grid)", "stroke-width":1});
+    A("text", {x:PL+iw+34, y:y+4, fill:"var(--muted)", "font-size":11}, fmt(v));
+  }
+  /* liquidity pools */
+  [["above", f.liq.above], ["below", f.liq.below]].forEach(([, pool]) => {
+    if (!pool || pool.p > hi || pool.p < lo) return;
+    const y = Y(pool.p);
+    A("rect", {x:PL, y:y-5, width:iw, height:10, fill:"rgba(250,178,25,.16)"});
+    A("text", {x:PL+4, y:y-7, fill:"var(--warn)", "font-size":9.5},
+      "liquidity ×" + pool.n + " @ " + fmt(pool.p));
+  });
+  /* unfilled FVGs in range */
+  (f.fvg.unfilled || []).slice(-4).forEach(g => {
+    if (g.bot > hi || g.top < lo) return;
+    const y1 = Y(Math.min(g.top, hi)), y2 = Y(Math.max(g.bot, lo));
+    const startI = Math.max(0, g.i - (cell.candles.length - candles.length));
+    A("rect", {x:X(Math.max(0,startI)), y:y1, width:PL+iw-X(Math.max(0,startI)),
+      height:Math.max(2, y2-y1), fill:"rgba(57,135,229,.16)"});
+  });
+  if (f.fvg.inside) A("text", {x:PL+6, y:Y(f.fvg.inside.top)+12, fill:"var(--s1)",
+    "font-size":9.5}, "price inside unfilled FVG");
+  /* candles */
+  candles.forEach((c, i) => {
+    const up = c.c >= c.o, col = up ? "var(--good)" : "var(--crit)", x = X(i);
+    A("line", {x1:x, x2:x, y1:Y(c.h), y2:Y(c.l), stroke:col, "stroke-width":1});
+    const y1 = Y(Math.max(c.o,c.c)), y2 = Y(Math.min(c.o,c.c));
+    A("rect", {x:x-2.6, y:y1, width:5.2, height:Math.max(1.5, y2-y1), fill:col, rx:1});
+  });
+  /* structure event */
+  if (f.structure.event) {
+    const evI = f.structure.event.i - (cell.candles.length - candles.length);
+    if (evI >= 0 && evI < candles.length) {
+      const y = Y(f.structure.event.level);
+      A("line", {x1:X(Math.max(0,evI-8)), x2:X(evI), y1:y, y2:y,
+        stroke:"var(--ink2)", "stroke-dasharray":"3 3", "stroke-width":1});
+      A("text", {x:X(evI)-30, y:y-6, fill:"var(--ink2)", "font-size":10,
+        "font-weight":700}, f.structure.event.type);
+    }
+  }
+  /* volume profile */
+  if (f.vp) {
+    const pmax = Math.max(...f.vp.prof);
+    f.vp.prof.forEach((v, b) => {
+      const yv = f.vp.lo + (b+0.5)/f.vp.bins*(f.vp.hi-f.vp.lo);
+      if (yv > hi || yv < lo) return;
+      A("rect", {x:PL+iw+3, y:Y(yv)-3, width:(v/pmax)*(PR-84), height:6, rx:2,
+        fill:b === f.vp.pocBin ? "rgba(195,194,183,.85)" : "rgba(137,135,129,.4)"});
+    });
+    A("text", {x:PL+iw+3, y:Y(f.vp.poc)-6, fill:"var(--ink2)", "font-size":9}, "POC");
+  }
+  /* volume bars + z flag */
+  const vb = H-PB+14, vh = 26, vmax = Math.max(...candles.map(c=>c.v));
+  candles.forEach((c, i) => {
+    const h = (c.v/vmax)*vh;
+    A("rect", {x:X(i)-2.4, y:vb+vh-h, width:4.8, height:h, rx:1,
+      fill:i === candles.length-1 && f.volZ > 2 ? "var(--warn)" : "rgba(137,135,129,.5)"});
+  });
+  if (f.volZ > 2) A("text", {x:PL+iw-84, y:vb+6, fill:"var(--warn)", "font-size":9.5},
+    "vol +" + f.volZ.toFixed(1) + "σ ⚡");
+  /* squeeze strip */
+  const sb = H-12;
+  const flags = f.series.bwFlags.slice(-90);
+  flags.forEach((on, i) => {
+    A("rect", {x:X(i)-2.4, y:sb-4, width:4.8, height:5, rx:1,
+      fill:on ? "var(--warn)" : "rgba(137,135,129,.3)"});
+  });
+  A("text", {x:PL, y:sb-8, fill:"var(--muted)", "font-size":9.5},
+    "BB squeeze map" + (f.inSqueeze ? " — in squeeze now" :
+      f.released ? " — fired " + (f.released.dir === 1 ? "↑" : "↓") : ""));
+
+  const box = el("div", "chartbox");
+  box.appendChild(svg);
+  const key = el("div", "keyrow");
+  [["rgba(57,135,229,.5)","FVG (unfilled)"],["rgba(250,178,25,.5)","liquidity pool"],
+   ["rgba(137,135,129,.6)","volume profile / POC"]].forEach(([c, t]) => {
+    const s = el("span");
+    const k = el("span", "k"); k.style.background = c;
+    s.appendChild(k); s.appendChild(document.createTextNode(t));
+    key.appendChild(s);
+  });
+  key.appendChild(el("span", null, name + " · " + tfKey + " · system annotations"));
+  box.appendChild(key);
+  return box;
+}
+
+/* ============ DATA INSPECTOR ============ */
+const NET = {requests: 0, ok: 0, failed: 0, lastError: null, lastUrlTime: null};
+
+function renderInspector() {
+  const box = $("#inspector");
+  if (!box || box.hidden) return;
+  box.textContent = "";
+  box.appendChild(el("h2", null, "🔬 Data inspector — is this thing live?"));
+  box.appendChild(el("div", "conf",
+    `${NET.requests} requests to api.bybit.com this session · ${NET.ok} ok · ${NET.failed} failed` +
+    (NET.lastError ? ` · last error: ${NET.lastError}` : "")));
+  const t = el("table", "ticket");
+  const hr = el("tr");
+  ["Timeframe", "Refresh every", "Last pulled", "Next pull in", "Latest BTC candle"].forEach(h => {
+    const td = el("td", null, h); td.style.color = "var(--muted)"; hr.appendChild(td);
+  });
+  t.appendChild(hr);
+  const now = Date.now();
+  TFS.forEach(tf => {
+    const last = lastTfFetch[tf.key];
+    const cell = DATA["BTCUSDT"] && DATA["BTCUSDT"][tf.key];
+    const lastBar = cell && cell.candles.length
+      ? cell.candles[cell.candles.length - 1] : null;
+    const tr = el("tr");
+    [tf.key,
+     tf.refreshSec >= 60 ? (tf.refreshSec/60) + " min" : tf.refreshSec + "s",
+     last ? Math.round((now - last)/1000) + "s ago (" + ukTime(last) + " UK)" : "—",
+     last ? Math.max(0, Math.round((last + tf.refreshSec*1000 - now)/1000)) + "s" : "—",
+     lastBar ? "opened " + ukTime(lastBar.t) + " UK · close " + fmt(lastBar.c) : "—",
+    ].forEach(v => tr.appendChild(el("td", null, v)));
+    t.appendChild(tr);
+  });
+  box.appendChild(t);
+  box.appendChild(el("div", "legend",
+    "To verify independently: (1) the BTC close above should match the Bybit app / TradingView " +
+    "BYBIT:BTCUSDT to the tick within seconds; (2) press F12 → Network tab and watch the " +
+    "api.bybit.com requests arrive on the cadence shown; (3) the “updated Xs ago” counter in the " +
+    "header resets with every successful pull. Mock mode never shows this table as live."));
+}
+
+/* ============ REFRESH LOOP ============ */
+const lastTfFetch = {};
+let failStreak = 0;
+
+async function pool(tasks, size) {
+  const q = [...tasks];
+  const workers = Array(Math.min(size, q.length)).fill(0).map(async () => {
+    while (q.length) { const t = q.shift(); await t(); }
+  });
+  await Promise.all(workers);
+}
+
+async function refreshTf(tf) {
+  const tasks = PAIRS.map(([sym]) => async () => {
+    try {
+      const candles = await fetchKlines(sym, tf);
+      DATA[sym] = DATA[sym] || {};
+      DATA[sym][tf.key] = {candles, feats: computeFeatures(candles), fetchedAt: Date.now()};
+      lastGoodFetch = Date.now();
+      failStreak = 0;
+    } catch (e) {
+      failStreak++;
+      if (failStreak === 5) showError("Data fetch failing: " + e.message);
+    }
+  });
+  await pool(tasks, 6);
+  lastTfFetch[tf.key] = Date.now();
+}
+
+function showError(msg) {
+  const b = $("#banner");
+  b.className = "banner"; b.style.display = "block";
+  b.textContent = "⚠ " + msg + " — if this persists, tell Claude the exact text of this banner.";
+  $("#statdot").className = "dot err";
+}
+
+function updateStamp() {
+  const dot = $("#statdot"), txt = $("#statTxt");
+  if (MOCK) {
+    dot.className = "dot wait";
+    txt.textContent = "MOCK DATA MODE — synthetic prices for preview only";
+    const b = $("#banner");
+    b.className = "banner mock"; b.style.display = "block";
+    b.textContent = "🧪 Mock mode (?mock=1) — synthetic data so the layout can be previewed offline. Remove ?mock=1 for live Bybit prices.";
+    return;
+  }
+  if (activeUni !== "crypto") {
+    const st = UNI_STATE[activeUni];
+    if (st && st.generated) {
+      dot.className = "dot ok";
+      txt.textContent = `${activeUni} data generated ${ukTime(st.generated)} UK · ` +
+        `rebuilt by the backend every 15 min · page re-checks every 5 min · crypto tab stays live`;
+      return;
+    }
+  }
+  if (lastGoodFetch) {
+    const ago = Math.round((Date.now() - lastGoodFetch)/1000);
+    dot.className = "dot live";
+    txt.textContent = `Bybit spot · LIVE · ${PAIRS.length} pairs × ${TFS.length} timeframes · updated ${ago < 5 ? "just now" : ago + "s ago"} · ${ukTime(Date.now())} UK`;
+  }
+}
+
+function renderAll() {
+  scanCache = scanStrategies();
+  renderAlerts(); renderStrats(); renderPicks(); renderMatrix(); updateStamp();
+  renderInspector(); showUniState();
+}
+
+let lastNewsFetch = 0;
+async function boot() {
+  renderUniTabs();
+  updateStamp();
+  fetchFundamentals();     // crypto fundamentals (hourly)
+  loadFundamentalsX();     // equities fundamentals from the backend
+  loadNews().then(() => { lastNewsFetch = Date.now(); renderNewsView(); });
+  loadJournal().then(renderPerf);
+  // initial crypto load: fast TFs first so the matrix fills progressively
+  for (const tf of TFS) {
+    await refreshTf(tf);
+    detectEvents(); renderAll();
+  }
+  try { await fetchTickers(); renderMatrix(); } catch (e) {}
+  // steady-state loop
+  setInterval(async () => {
+    const now = Date.now();
+    for (const tf of TFS) {
+      if (now - (lastTfFetch[tf.key] || 0) >= tf.refreshSec * 1000) {
+        await refreshTf(tf);
+        detectEvents();
+      }
+    }
+    try { await fetchTickers(); } catch (e) {}
+    if (Date.now() - lastFundFetch > 3600e3) fetchFundamentals();
+    // reload the active JSON universe + news every 5 min (backend rebuilds every 15)
+    const st = UNI_STATE[activeUni];
+    if (activeUni !== "crypto" && st && st.loadedAt &&
+        now - st.loadedAt > 300e3) { await loadUniverse(activeUni); detectEvents(); }
+    if (now - lastNewsFetch > 300e3) {
+      loadNews().then(() => { lastNewsFetch = Date.now(); renderNewsView(); });
+      loadJournal().then(renderPerf);
+    }
+    renderAll();
+  }, 30000);
+  setInterval(updateStamp, 5000);
+}
+boot();
+</script></body></html>
