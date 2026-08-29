@@ -1,0 +1,37 @@
+name: Hourly news digest
+
+on:
+  schedule:
+    - cron: "12 * * * *"  # every hour at :12 (offset avoids GitHub's :00 congestion)
+  workflow_dispatch: {}    # "Run workflow" button for instant testing
+
+concurrency:
+  group: news
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write      # allows committing the de-dup state file back
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Build and post digest
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python news.py
+      - name: Save de-dup state
+        run: |
+          git config user.name "news-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add state/seen_news.json || true
+          git diff --cached --quiet || git commit -m "news: update seen state [skip ci]"
+          git pull --rebase origin ${GITHUB_REF_NAME} || true
+          git push || true

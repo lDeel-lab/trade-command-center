@@ -1,0 +1,73 @@
+name: Dashboard data refresh
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"   # every 15 min (GitHub may add a few minutes' jitter)
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths-ignore: ["state/**"]   # first deploy runs automatically on upload
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-data
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Restore daily fundamentals cache
+        id: fundcache
+        uses: actions/cache@v4
+        with:
+          path: site/data/fundamentals.json
+          key: fundamentals-${{ github.run_id }}
+          restore-keys: fundamentals-
+      - name: Build fundamentals (only if missing or stale >20h)
+        run: |
+          python - <<'EOF'
+          import json, os, subprocess, time
+          p = "site/data/fundamentals.json"
+          stale = True
+          if os.path.exists(p):
+              try:
+                  gen = json.load(open(p)).get("generated", 0)
+                  stale = (time.time()*1000 - gen) > 20*3600*1000
+              except Exception:
+                  pass
+          if stale:
+              subprocess.run(["python", "build_fundamentals.py"], check=True)
+          else:
+              print("fundamentals fresh — skipping")
+          EOF
+      - name: Build market data
+        run: python build_markets.py
+      - name: Build tagged news
+        run: python build_news.py
+      - name: Assemble site
+        run: cp dashboard.html site/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
