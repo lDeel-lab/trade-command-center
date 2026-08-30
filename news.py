@@ -113,6 +113,54 @@ def collect() -> tuple[dict[str, list[dict]], dict]:
     return fresh, seen
 
 
+import re as _re
+
+# ---- transmission map: event type -> who benefits / who is pressured -------
+# Deterministic "tradable news" layer. Names refer to instruments in universe.py.
+TRANSMISSION = [
+    (r"(refin|pipelin|oil (depot|terminal|field)|crude|opec)\S*.*"
+     r"(drone|strike|attack|blaz|fire|sanction|halt|outage|disrupt|cut[s]? (output|production))|"
+     r"(drone|strike|attack|sanction).*(refin|oil|crude|energy|gas)",
+     "⛽ Energy supply shock — bullish oil/gas",
+     ["WTI Crude", "Brent Crude", "Nat Gas", "Shell", "BP", "Exxon Mobil",
+      "Chevron", "TotalEnergies"],
+     ["fuel-cost-heavy equities (autos, consumer, industrials)"]),
+    (r"opec\S*.*(raise|hike|increase|boost|ramp).*(output|production|supply)|"
+     r"(oil|crude).*(glut|demand (fears|worries|slump))",
+     "🛢 Oil supply up / demand doubt — bearish oil",
+     ["fuel-cost-heavy equities"], ["WTI Crude", "Brent Crude", "Shell", "BP", "Exxon Mobil"]),
+    (r"escalat|war |strikes on|missile|invasion|geopolitic|safe.?haven|risk.?off",
+     "🛡 Risk-off / war premium",
+     ["Gold", "Silver", "USD/CHF", "USD/JPY (yen strength)"],
+     ["equity indices broadly", "high-beta crypto"]),
+    (r"rate cut|cuts? interest rates|dovish|easing cycle|pivot",
+     "🕊 Easier policy — risk assets tailwind",
+     ["equity indices", "Gold", "Bitcoin", "growth/Technology stocks"],
+     ["DXY Dollar Index"]),
+    (r"rate hike|hawkish|inflation.*(hot|jump|surge|accelerat|above)|cpi.*(hotter|above|beats|tops|jumps)",
+     "🦅 Hawkish surprise — dollar up, risk pressured",
+     ["DXY Dollar Index"],
+     ["equity indices", "Gold", "Bitcoin", "growth/Technology stocks"]),
+    (r"china.*(stimulus|support package|boost|rescue)|pboc.*(cut|inject|ease)",
+     "🐉 China stimulus — China assets & industrial metals",
+     ["Tencent", "Alibaba", "Meituan", "Hang Seng", "Copper", "Rio Tinto", "Glencore"],
+     []),
+    (r"dollar (slides|falls|weakens|drops|tumbles)",
+     "💵 Dollar weakness — commodities & majors tailwind",
+     ["Gold", "EUR/USD", "GBP/USD", "commodities broadly"], ["DXY Dollar Index"]),
+    (r"(bitcoin|crypto).*etf.*(inflow|approval|record)|etf.*(inflow).*(bitcoin|crypto)",
+     "₿ Crypto ETF demand — bullish majors",
+     ["Bitcoin", "Ethereum"], []),
+]
+
+def transmission_for(title: str):
+    tl = title.lower()
+    for rx, event, benefits, hurts in TRANSMISSION:
+        if _re.search(rx, tl):
+            return {"event": event, "benefits": benefits, "hurts": hurts}
+    return None
+
+
 def latest_headlines(max_age_hours: int = 24,
                      per_category: int = 10) -> list[dict]:
     """Latest headlines regardless of seen-state — for the dashboard's News tab.
@@ -166,6 +214,12 @@ def build_message(fresh: dict[str, list[dict]]) -> str | None:
         for it in items:
             lines.append(f"• <a href=\"{it['link']}\">{esc(it['title'])}</a> "
                          f"<i>({esc(it['source'])})</i>")
+            tr = transmission_for(it["title"])
+            if tr:
+                lines.append(f"   ⚡ <b>{esc(tr['event'])}</b> — benefits: "
+                             f"{esc(', '.join(tr['benefits'][:5]))}"
+                             + (f" · pressured: {esc(', '.join(tr['hurts'][:3]))}"
+                                if tr["hurts"] else ""))
         parts.append("\n".join(lines))
     return "\n\n".join(parts)
 
