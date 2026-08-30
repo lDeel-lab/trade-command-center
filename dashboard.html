@@ -27,7 +27,7 @@
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;color:var(--ink);min-height:100vh;background:var(--page);
-  font:14px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  font:15.5px/1.6 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
   position:relative;overflow-x:hidden}
 /* animated aurora backdrop */
 body::before,body::after{content:"";position:fixed;z-index:-1;border-radius:50%;
@@ -58,16 +58,16 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 @keyframes logoGlow{from{box-shadow:0 0 12px rgba(94,231,214,.25)}
   to{box-shadow:0 0 26px rgba(140,167,255,.5)}}
 @media (prefers-reduced-motion:reduce){.logo{animation:none}}
-.brand h1{font-size:15px;line-height:1.2;margin:0}
+.brand h1{font-size:16px;line-height:1.2;margin:0}
 .brand small{color:var(--muted);font-size:11px}
 .sbnote{margin-top:20px;padding:13px;border-radius:14px;background:var(--surface);
-  border:1px solid var(--border);font-size:11.5px;color:var(--muted);line-height:1.5}
+  border:1px solid var(--border);font-size:12.5px;color:var(--muted);line-height:1.5}
 .main{padding:22px 26px 40px;min-width:0}
 
 /* sidebar nav (renderUniTabs fills #unitabs) */
 .unitabs{display:flex;flex-direction:column;gap:5px}
-.unitabs button{padding:9px 12px;border-radius:11px;text-align:left;font-weight:600;
-  font-size:13px;color:var(--muted);border:1px solid transparent;white-space:nowrap;
+.unitabs button{padding:10px 13px;border-radius:11px;text-align:left;font-weight:600;
+  font-size:14.5px;color:var(--muted);border:1px solid transparent;white-space:nowrap;
   transition:background .18s,color .18s,border-color .18s,transform .18s}
 .unitabs button:hover{color:var(--ink);background:var(--surface2);transform:translateX(2px)}
 .unitabs button[aria-selected="true"]{color:var(--ink);background:var(--surface2);
@@ -103,13 +103,44 @@ h1{font-size:19px;margin:0}
 .panel{background:linear-gradient(180deg,color-mix(in srgb,var(--surface2) 88%,transparent),color-mix(in srgb,var(--surface) 94%,transparent));
   border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
 :root[data-theme="light"] .panel{background:var(--surface)}
-h2{font-size:13px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink2);margin:0 0 12px;
+h2{font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin:0 0 12px;
   position:relative;padding-bottom:7px}
 h2::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:42px;border-radius:3px;
   background:var(--grad)}
-.legend{font-size:11.5px;color:var(--muted);margin-top:9px;line-height:1.5}
+.legend{font-size:12.5px;color:var(--muted);margin-top:9px;line-height:1.5}
 .unierr{background:var(--surface);border:1px dashed var(--border);border-radius:12px;
   padding:14px;color:var(--ink2);font-size:12.5px;margin-bottom:12px;display:none}
+
+/* ============ SUB-TABS (pills inside a tab) ============ */
+.subtabs{display:flex;gap:7px;flex-wrap:wrap;margin:2px 0 14px}
+.subtabs button{border:1px solid var(--border);border-radius:999px;padding:7px 16px;
+  font-size:13.5px;font-weight:650;color:var(--ink2);background:var(--surface);
+  transition:all .18s}
+.subtabs button:hover{border-color:var(--muted);transform:translateY(-1px)}
+.subtabs button[aria-selected="true"]{background:var(--grad);color:#06101d;border-color:transparent;
+  box-shadow:0 4px 14px rgba(94,231,214,.25)}
+
+/* ============ ARCHITECTURE DIAGRAM ============ */
+.archbox svg{display:block;width:100%;height:auto}
+.archnode{fill:var(--surface2);stroke:var(--border);rx:12}
+.archlbl{fill:var(--ink);font-weight:700;font-size:13px}
+.archsub{fill:var(--muted);font-size:10.5px}
+.archpath{fill:none;stroke:var(--grid);stroke-width:2;stroke-dasharray:5 5}
+.archdot{filter:drop-shadow(0 0 4px currentColor)}
+.archcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-top:14px}
+.archcard{background:var(--surface2);border:1px solid var(--border);border-radius:13px;padding:13px 15px}
+.archcard b{display:block;margin-bottom:4px;font-size:14px}
+.archcard span{font-size:12.5px;color:var(--muted);line-height:1.55}
+.archcard{border-top:3px solid var(--s2)}
+.archcards .archcard:nth-child(2n){border-top-color:var(--s1)}
+.archcards .archcard:nth-child(3n){border-top-color:#f472b6}
+.archcards .archcard:nth-child(4n){border-top-color:var(--warn)}
+
+/* ============ TRADE FLOW DIAGRAM ============ */
+.tflow{background:var(--surface);border:1px solid var(--border);border-radius:13px;
+  padding:10px 8px 4px;margin:10px 0}
+.tflow svg{display:block;width:100%;height:auto}
+@keyframes nodepulse{0%,100%{r:6}50%{r:9}}
 
 /* scroll-reveal animation */
 .reveal{opacity:0;transform:translateY(16px);
@@ -129,9 +160,9 @@ h2::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:42px;bor
 .nchip[aria-pressed="true"]{background:var(--grad);color:#06101d;font-weight:700;border-color:transparent}
 .nitem{border-bottom:1px solid var(--grid);padding:10px 2px}
 .nitem:last-child{border-bottom:none}
-.nitem a{color:var(--ink);text-decoration:none;font-weight:550;font-size:13.5px}
+.nitem a{color:var(--ink);text-decoration:none;font-weight:550;font-size:15px}
 .nitem a:hover{color:var(--s1)}
-.ntags{font-size:11px;color:var(--muted);margin-top:3px}
+.ntags{font-size:12px;color:var(--muted);margin-top:3px}
 .ntag{display:inline-block;border:1px solid var(--border);border-radius:999px;
   background:var(--chip);padding:0 8px;margin-right:4px}
 .ninst{color:var(--s1);cursor:pointer}
@@ -140,7 +171,7 @@ h2::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:42px;bor
 /* ============ STRATEGIES ============ */
 .stratrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
 .strat{border:1px solid var(--border);border-radius:13px;padding:11px 13px;text-align:left;
-  background:var(--surface2);font-weight:650;font-size:13px;cursor:pointer;width:100%;
+  background:var(--surface2);font-weight:650;font-size:14.5px;cursor:pointer;width:100%;
   transition:transform .18s,box-shadow .18s,border-color .18s}
 .strat:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--muted)}
 .strat.on{outline:2px solid var(--s2);outline-offset:-1px}
@@ -150,7 +181,7 @@ h2::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:42px;bor
 .stratrow .strat:nth-child(5n+4){border-top:3px solid #ffc857}
 .stratrow .strat:nth-child(5n+5){border-top:3px solid #a78bfa}
 .strat .n{float:right;color:var(--s2);font-size:11.5px}
-.strat .d{display:block;font-weight:400;font-size:11px;color:var(--muted);margin-top:3px}
+.strat .d{display:block;font-weight:400;font-size:12.5px;color:var(--muted);margin-top:3px}
 
 /* ============ LAYOUT ============ */
 .cols{display:grid;grid-template-columns:340px minmax(0,1fr);gap:14px;align-items:start;margin-top:14px}
@@ -172,21 +203,21 @@ h2::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:42px;bor
 .pick.reveal:nth-child(5){transition-delay:210ms}
 .pick.reveal:nth-child(6){transition-delay:280ms}
 .pick .hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.pick .nm{font-weight:700;flex:1;font-size:14.5px}
-.badge{font-size:10.5px;font-weight:700;border-radius:999px;padding:3px 9px;white-space:nowrap}
+.pick .nm{font-weight:700;flex:1;font-size:16.5px}
+.badge{font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 9px;white-space:nowrap}
 .badge.LONG{background:rgba(97,208,149,.16);color:var(--good);border:1px solid rgba(97,208,149,.4)}
 .badge.SHORT{background:rgba(255,107,122,.14);color:var(--crit);border:1px solid rgba(255,107,122,.4)}
 .badge.WAIT{border:1px solid var(--border);color:var(--ink2)}
-.conf{font-size:11.5px;color:var(--muted)}
-.why{font-size:12px;color:var(--ink2);margin:7px 0}
+.conf{font-size:13px;color:var(--muted)}
+.why{font-size:13px;color:var(--ink2);margin:7px 0}
 .why span{display:inline-block;background:var(--chip);border:1px solid var(--border);
-  border-radius:999px;padding:2px 9px;margin:2px 4px 0 0;font-size:11px}
-.lvls{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;font-size:11.5px;
+  border-radius:999px;padding:2px 9px;margin:2px 4px 0 0;font-size:12px}
+.lvls{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;font-size:13px;
   font-variant-numeric:tabular-nums}
 .lvls div{background:var(--page);border:1px solid var(--grid);border-radius:9px;padding:5px 8px}
-.lvls .l{color:var(--muted);font-size:10px;display:block}
+.lvls .l{color:var(--muted);font-size:11px;display:block}
 .lvls .sl{color:var(--crit)} .lvls .tp{color:var(--goodtext)}
-.convrow{display:flex;align-items:center;gap:8px;margin:8px 0 2px;font-size:11.5px}
+.convrow{display:flex;align-items:center;gap:8px;margin:8px 0 2px;font-size:12.5px}
 .convbar{flex:1;height:7px;border-radius:999px;background:var(--grid);overflow:hidden}
 .convbar i{display:block;height:100%;border-radius:999px;
   transition:width .9s cubic-bezier(.2,.8,.2,1)}
@@ -194,14 +225,14 @@ h2::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:42px;bor
 
 /* ============ MATRIX ============ */
 .matrix{overflow-x:auto}
-table.mtx{border-collapse:collapse;font-size:11.5px;width:100%;min-width:660px}
-.mtx th{color:var(--muted);font-weight:600;font-size:10.5px;padding:6px;text-align:center;
+table.mtx{border-collapse:collapse;font-size:13px;width:100%;min-width:660px}
+.mtx th{color:var(--muted);font-weight:600;font-size:11.5px;padding:6px;text-align:center;
   text-transform:uppercase;letter-spacing:.05em}
 .mtx th:first-child{text-align:left}
 .mtx td{padding:3px 4px;text-align:center}
 .mtx td:first-child{text-align:left;font-weight:650;white-space:nowrap;cursor:pointer}
-.mtx td:first-child .g{color:var(--muted);font-weight:400;font-size:10px;display:block}
-.mtx td:first-child .pr{color:var(--ink2);font-weight:500;font-size:10.5px;
+.mtx td:first-child .g{color:var(--muted);font-weight:400;font-size:11.5px;display:block}
+.mtx td:first-child .pr{color:var(--ink2);font-weight:500;font-size:12px;
   font-variant-numeric:tabular-nums;margin-left:6px;border-radius:5px;padding:0 4px}
 .pr.up{animation:flashUp 1.4s ease-out}
 .pr.down{animation:flashDown 1.4s ease-out}
@@ -223,7 +254,7 @@ table.mtx{border-collapse:collapse;font-size:11.5px;width:100%;min-width:660px}
 @keyframes slideup{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.dpanel{animation:none}}
 .dhd{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.dhd b{font-size:18px}
+.dhd b{font-size:21px}
 .close{border:1px solid var(--border);border-radius:999px;padding:5px 13px;color:var(--ink2);
   margin-left:auto;background:var(--surface)}
 .close:hover{filter:brightness(1.2)}
@@ -235,7 +266,7 @@ table.mtx{border-collapse:collapse;font-size:11.5px;width:100%;min-width:660px}
 @media(max-width:1000px){.dgrid{grid-template-columns:1fr}}
 .drail{position:sticky;top:0;max-height:88vh;overflow:auto;background:var(--surface);
   border:1px solid var(--border);border-radius:14px;padding:12px 14px}
-.drail h3{margin:0 0 4px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.drail h3{margin:0 0 4px;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .tfrow{display:flex;gap:5px;flex-wrap:wrap;margin:10px 0 6px}
 .tf{border:1px solid var(--border);border-radius:999px;padding:3px 11px;font-size:11.5px;color:var(--ink2);
   transition:all .15s}
@@ -248,11 +279,11 @@ table.mtx{border-collapse:collapse;font-size:11.5px;width:100%;min-width:660px}
 .tvbox{border:1px solid var(--border);border-radius:13px;overflow:hidden;margin:8px 0;
   height:440px;background:var(--surface)}
 .tvbox iframe{width:100%;height:100%;border:0}
-.dh3{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:16px 0 5px}
-.dp{font-size:13px;color:var(--ink2);margin:6px 0;line-height:1.6}
+.dh3{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:16px 0 5px}
+.dp{font-size:14.5px;color:var(--ink2);margin:7px 0;line-height:1.65}
 .detailcols{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px}
 @media(max-width:1240px){.detailcols{grid-template-columns:1fr}}
-.ticket{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+.ticket{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
 .ticket td{padding:6px 9px;border-bottom:1px solid var(--grid);text-align:left}
 .ticket td:last-child{text-align:right}
 .ticket tr:last-child td{border-bottom:none}
@@ -407,12 +438,100 @@ footer{margin-top:22px;color:var(--muted);font-size:11.5px;border-top:1px solid 
   </div>
 </section>
 
+<section id="view-arch" hidden>
+  <div class="panel archbox">
+    <h2>🏗 How this machine works — the moving parts</h2>
+    <p class="dp">This is the system you own, in one picture. The dots are your data on the move —
+    each one travels the path your prices, news and alerts actually take, every 15 minutes,
+    whether your computer is on or not.</p>
+    <svg viewBox="0 0 960 480" role="img" aria-label="System architecture">
+      <!-- edges (drawn first, under nodes) -->
+      <path id="ap1" class="archpath" d="M140,84 C140,130 300,150 420,168"/>
+      <path id="ap2" class="archpath" d="M480,84 L480,166"/>
+      <path id="ap3" class="archpath" d="M820,84 C930,200 880,360 475,418"/>
+      <path id="ap4" class="archpath" d="M430,232 C360,265 300,275 262,298"/>
+      <path id="ap5" class="archpath" d="M540,232 C620,262 670,272 700,296"/>
+      <path id="ap6" class="archpath" d="M260,352 L260,396"/>
+      <path id="ap7" class="archpath" d="M720,352 L745,396"/>
+      <path id="ap8" class="archpath" d="M472,428 L638,428"/>
+      <!-- nodes -->
+      <g>
+        <rect class="archnode" x="40"  y="30" width="200" height="54" rx="12"/>
+        <text class="archlbl" x="140" y="53" text-anchor="middle">🟡 Yahoo Finance</text>
+        <text class="archsub" x="140" y="70" text-anchor="middle">stocks · indices · FX · commodities</text>
+        <rect class="archnode" x="380" y="30" width="200" height="54" rx="12"/>
+        <text class="archlbl" x="480" y="53" text-anchor="middle">📰 News wires</text>
+        <text class="archsub" x="480" y="70" text-anchor="middle">CNBC · Reuters · Google News RSS</text>
+        <rect class="archnode" x="720" y="30" width="200" height="54" rx="12"/>
+        <text class="archlbl" x="820" y="53" text-anchor="middle">🟠 Bybit</text>
+        <text class="archsub" x="820" y="70" text-anchor="middle">live crypto, straight to your browser</text>
+      </g>
+      <g>
+        <rect class="archnode" x="330" y="172" width="300" height="60" rx="14" style="stroke:var(--s2);stroke-width:2"/>
+        <text class="archlbl" x="480" y="196" text-anchor="middle">🤖 GitHub robot — every 15 min</text>
+        <text class="archsub" x="480" y="214" text-anchor="middle">builds data · tags news · scores the journal · sends alerts</text>
+      </g>
+      <g>
+        <rect class="archnode" x="140" y="300" width="240" height="52" rx="12"/>
+        <text class="archlbl" x="260" y="322" text-anchor="middle">📦 Data shelf</text>
+        <text class="archsub" x="260" y="339" text-anchor="middle">JSON files on your hosted site</text>
+        <rect class="archnode" x="600" y="300" width="240" height="52" rx="12"/>
+        <text class="archlbl" x="720" y="322" text-anchor="middle">📲 Telegram</text>
+        <text class="archsub" x="720" y="339" text-anchor="middle">A-grade alerts · daily briefing · news digest</text>
+      </g>
+      <g>
+        <rect class="archnode" x="40" y="400" width="432" height="56" rx="14" style="stroke:var(--s1);stroke-width:2"/>
+        <text class="archlbl" x="256" y="423" text-anchor="middle">🖥 Dashboard in your browser</text>
+        <text class="archsub" x="256" y="440" text-anchor="middle">scores → regime → grades → trade plans (computed live on your screen)</text>
+        <rect class="archnode" x="640" y="402" width="220" height="52" rx="12"/>
+        <text class="archlbl" x="750" y="424" text-anchor="middle">👤 You</text>
+        <text class="archsub" x="750" y="441" text-anchor="middle">the only one who clicks Buy</text>
+      </g>
+      <!-- animated dots -->
+      <circle class="archdot" r="5" fill="#ffc857" style="color:#ffc857">
+        <animateMotion dur="4s" repeatCount="indefinite"><mpath href="#ap1"/></animateMotion></circle>
+      <circle class="archdot" r="5" fill="#f472b6" style="color:#f472b6">
+        <animateMotion dur="3.2s" begin="0.6s" repeatCount="indefinite"><mpath href="#ap2"/></animateMotion></circle>
+      <circle class="archdot" r="5" fill="#5ee7d6" style="color:#5ee7d6">
+        <animateMotion dur="5.5s" begin="0.2s" repeatCount="indefinite"><mpath href="#ap3"/></animateMotion></circle>
+      <circle class="archdot" r="5" fill="#8ca7ff" style="color:#8ca7ff">
+        <animateMotion dur="3.4s" begin="1s" repeatCount="indefinite"><mpath href="#ap4"/></animateMotion></circle>
+      <circle class="archdot" r="5" fill="#61d095" style="color:#61d095">
+        <animateMotion dur="3.4s" begin="1.6s" repeatCount="indefinite"><mpath href="#ap5"/></animateMotion></circle>
+      <circle class="archdot" r="5" fill="#8ca7ff" style="color:#8ca7ff">
+        <animateMotion dur="2.4s" begin="0.4s" repeatCount="indefinite"><mpath href="#ap6"/></animateMotion></circle>
+      <circle class="archdot" r="5" fill="#61d095" style="color:#61d095">
+        <animateMotion dur="2.4s" begin="2s" repeatCount="indefinite"><mpath href="#ap7"/></animateMotion></circle>
+      <circle class="archdot" r="5" fill="#a78bfa" style="color:#a78bfa">
+        <animateMotion dur="3s" begin="1.2s" repeatCount="indefinite"><mpath href="#ap8"/></animateMotion></circle>
+    </svg>
+    <div class="archcards">
+      <div class="archcard"><b>🟡 The data collectors</b><span>Every 15 minutes a small robot wakes up
+        in GitHub's cloud, downloads fresh candles for all 165 instruments from Yahoo, and pulls the
+        latest headlines from the news wires. Crypto is special — Bybit streams prices directly into
+        your browser, so those are live to the second.</span></div>
+      <div class="archcard"><b>🤖 The robot's jobs</b><span>It writes the data files, tags every headline
+        to the instruments it affects (with the who-benefits ⚡ map), re-scores every open journal trade
+        against fresh prices, and fires Telegram alerts for new A-grade setups. Then it goes back to sleep.
+        Your laptop is never needed.</span></div>
+      <div class="archcard"><b>🖥 The brain runs on your screen</b><span>The scoring engine — timeframe
+        scores, regime detection, Direction vs Entry, grades, structural targets — is computed live in
+        your browser each time you open the page. Nothing to install; the same file even works offline
+        for crypto.</span></div>
+      <div class="archcard"><b>👤 You stay in charge</b><span>The system researches, filters, grades and
+        alerts — but it never trades. Every position is opened by you, on IG, Bybit, IBKR or Revolut,
+        sized by the Risk tab. The machine's job is to make WAIT feel comfortable and A-grades rare.</span></div>
+    </div>
+  </div>
+</section>
+
 <section id="view-learn" hidden>
   <div class="panel" style="max-width:920px">
     <h2>📚 Knowledge base — the big-picture stuff, in plain English</h2>
     <p class="dp">This is your reference shelf. Nothing here changes by the minute — it's the background
     physics of markets. When a headline says "CPI came in hot" or "the yield curve un-inverted", come here,
     find the term, and you'll know whether that's a tailwind or a headwind for what you hold.</p>
+    <div class="subtabs" id="learnsub"></div>
 
     <h3 class="dh3">💵 Money supply &amp; M2 — how much money exists</h3>
     <p class="dp"><b>M2</b> is simply a count of all the easily-spendable money in the economy: physical cash,
@@ -604,7 +723,8 @@ footer{margin-top:22px;color:var(--muted);font-size:11.5px;border-top:1px solid 
 </section>
 
 <div id="view-market">
-<div class="panel">
+<div class="subtabs" id="mktsub"></div>
+<div class="panel" id="stratpanel">
   <h2>🧠 Strategies — click to scan all pairs for exact conditions</h2>
   <div class="stratrow" id="stratrow"></div>
   <div class="legend" id="stratnote">Click a strategy to filter picks &amp; matrix to its matches; click again to clear.</div>
@@ -1836,7 +1956,7 @@ let account = 10000, riskPct = 1;
 
 /* universe tab bar (News is a pseudo-tab) */
 let logicView = false, perfView = false, rotView = false,
-    learnView = false, riskView = false, portView = false;
+    learnView = false, riskView = false, portView = false, archView = false;
 function renderUniTabs() {
   const bar = $("#unitabs");
   bar.textContent = "";
@@ -1847,11 +1967,12 @@ function renderUniTabs() {
                     {key: "__news", label: "📰 News"},
                     {key: "__perf", label: "📊 Performance"},
                     {key: "__learn", label: "📚 Learn"},
-                    {key: "__logic", label: "📖 Logic"}]).forEach(u => {
+                    {key: "__logic", label: "📖 Logic"},
+                    {key: "__arch", label: "🏗 System"}]).forEach(u => {
     if (u.key === "__rot") bar.appendChild(el("div", "navlabel", "Tools"));
     const b = el("button", null, u.label);
     b.type = "button";
-    const anyV = newsView || logicView || perfView || rotView || learnView || riskView || portView;
+    const anyV = newsView || logicView || perfView || rotView || learnView || riskView || portView || archView;
     const sel = u.key === "__news" ? newsView :
       u.key === "__logic" ? logicView :
       u.key === "__perf" ? perfView :
@@ -1859,12 +1980,14 @@ function renderUniTabs() {
       u.key === "__learn" ? learnView :
       u.key === "__risk" ? riskView :
       u.key === "__port" ? portView :
+      u.key === "__arch" ? archView :
       (!anyV && activeUni === u.key);
     b.setAttribute("aria-selected", sel ? "true" : "false");
     b.addEventListener("click", async () => {
-      newsView = logicView = perfView = rotView = learnView = riskView = portView = false;
+      newsView = logicView = perfView = rotView = learnView = riskView = portView = archView = false;
       if (u.key === "__news") newsView = true;
       else if (u.key === "__logic") logicView = true;
+      else if (u.key === "__arch") archView = true;
       else if (u.key === "__learn") learnView = true;
       else if (u.key === "__perf") perfView = true;
       else if (u.key === "__risk") { riskView = true; renderUniTabs(); renderRisk(); return; }
@@ -1882,7 +2005,7 @@ function renderUniTabs() {
     });
     bar.appendChild(b);
   });
-  const any = newsView || logicView || perfView || rotView || learnView || riskView || portView;
+  const any = newsView || logicView || perfView || rotView || learnView || riskView || portView || archView;
   $("#view-market").hidden = any;
   $("#view-news").hidden = !newsView;
   $("#view-logic").hidden = !logicView;
@@ -1891,6 +2014,7 @@ function renderUniTabs() {
   $("#view-learn").hidden = !learnView;
   $("#view-risk").hidden = !riskView;
   $("#view-port").hidden = !portView;
+  $("#view-arch").hidden = !archView;
 }
 
 /* ============ ROTATION TAB ============ */
@@ -2050,7 +2174,7 @@ function renderPerf() {
 function showUniState() {
   const box = $("#unierr");
   const st = UNI_STATE[activeUni];
-  const anyV = newsView || logicView || perfView || rotView || learnView || riskView || portView;
+  const anyV = newsView || logicView || perfView || rotView || learnView || riskView || portView || archView;
   if (anyV) { box.style.display = "none"; return; }
   if (!newsView && activeUni !== "crypto" && st && st.err) {
     box.style.display = "block"; box.textContent = "ℹ " + st.err;
@@ -2642,6 +2766,7 @@ ${trail2 || "- none captured"}`;
              : "No leverage assumed.")));
   cols.appendChild(right);
   p.appendChild(cols);
+  p.appendChild(tradeFlowEl(plan, dir));
   p.appendChild(renderFundamentals(sym, name));
 
   /* ---- news rail: ONLY news relevant to THIS instrument, on the right ---- */
@@ -3410,5 +3535,138 @@ setInterval(() => { if (portView) renderPort(); }, 60000);
       }
     }));
   }).observe(document.body, {childList: true, subtree: true});
+})();
+
+/* ============ ANIMATED TRADE-FLOW DIAGRAM (detail view) ============ */
+function tradeFlowEl(plan, dir) {
+  const wrap = el("div");
+  wrap.appendChild(el("h3", "dh3", "🎬 How this trade is managed — the journey, step by step"));
+  const box = el("div", "tflow");
+  const R1 = plan.r1 || 1, R2 = plan.r2 || 2, R3 = plan.r3 || 3;
+  const riskUSD = account * riskPct / 100;
+  const blend = ((R1 + R2 + R3) / 3 * riskUSD).toFixed(0);
+  const side = dir === 1 ? ["Buy", "sell", "above"] : ["Sell short", "buy back", "below"];
+  const N = (x, y, color, title, lines) => {
+    const t = lines.map((ln, i) =>
+      `<tspan x="${x}" dy="${i === 0 ? 0 : 15}">${ln}</tspan>`).join("");
+    return `
+      <circle cx="${x}" cy="${y}" r="7" fill="${color}" opacity=".25">
+        <animate attributeName="r" values="7;14;7" dur="2.6s" repeatCount="indefinite"/></circle>
+      <circle cx="${x}" cy="${y}" r="6" fill="${color}"/>
+      <text x="${x}" y="${y - 16}" text-anchor="middle" font-size="13.5" font-weight="700"
+        fill="${color}">${title}</text>
+      <text y="${y + 26}" text-anchor="middle" font-size="11.5" fill="var(--muted)">${t}</text>`;
+  };
+  box.innerHTML = `<svg viewBox="0 0 940 320" role="img" aria-label="Trade management flow">
+    <path id="tfwin" d="M110,200 C230,192 300,166 380,148 C470,128 540,116 610,104 C710,88 780,76 850,64"
+      fill="none" stroke="var(--good)" stroke-width="2.5" stroke-dasharray="6 6" opacity=".65"/>
+    <path id="tflose" d="M110,200 C150,232 190,252 245,262"
+      fill="none" stroke="var(--crit)" stroke-width="2" stroke-dasharray="4 6" opacity=".6"/>
+    ${N(110, 200, "var(--s1)", "🎯 ENTRY " + fmt(plan.entry),
+      [side[0] + " in the zone " + fmt(plan.eLo) + "–" + fmt(plan.eHi),
+       "size from the stop: risk $" + riskUSD.toFixed(0) + " (" + riskPct + "%)"])}
+    ${N(380, 148, "var(--good)", "TP1 " + fmt(plan.tp1) + " · +" + R1.toFixed(1) + "R",
+      [side[1] + " ⅓ here → +$" + (riskUSD * R1 / 3).toFixed(0),
+       "move stop to break-even", "🔓 the trade is now RISK-FREE"])}
+    ${N(610, 104, "var(--good)", "TP2 " + fmt(plan.tp2) + " · +" + R2.toFixed(1) + "R",
+      [side[1] + " another ⅓ → +$" + (riskUSD * R2 / 3).toFixed(0),
+       "worst case from here is a win"])}
+    ${N(850, 64, "var(--s2)", "🏁 TP3 " + fmt(plan.tp3) + " · +" + R3.toFixed(1) + "R",
+      ["final ⅓ off → +$" + (riskUSD * R3 / 3).toFixed(0),
+       "all three hit ≈ +$" + blend + " total"])}
+    ${N(245, 262, "var(--crit)", "🛑 STOP " + fmt(plan.sl) + " · −1R",
+      ["wrong → out for −$" + riskUSD.toFixed(0) + ", nothing more",
+       "one small loss, on to the next trade"])}
+    <circle r="5.5" fill="var(--good)" class="archdot" style="color:var(--good)">
+      <animateMotion dur="6s" repeatCount="indefinite" keyPoints="0;1" keyTimes="0;1">
+        <mpath href="#tfwin"/></animateMotion></circle>
+    <circle r="4" fill="var(--crit)" opacity=".8" class="archdot" style="color:var(--crit)">
+      <animateMotion dur="7s" begin="3s" repeatCount="indefinite"><mpath href="#tflose"/></animateMotion></circle>
+  </svg>`;
+  wrap.appendChild(box);
+  wrap.appendChild(el("div", "legend",
+    "The green path is the plan working: thirds off at each structural target, stop to break-even after TP1 " +
+    "so the market can never turn a winner into a loser. The red path is the plan failing — " +
+    "and costing exactly one small, pre-decided loss. " +
+    (dir === 1 ? "" : "Short version: the levels sit " + side[2] + " entry — same discipline, mirrored. ") +
+    "Prices update with the plan every refresh."));
+  return wrap;
+}
+
+/* ============ SUB-TABS: Market view (Overview / Picks / Matrix / Strategies) ============ */
+(function () {
+  if (typeof document === "undefined" || !document.body) return;  /* browser only */
+  const bar = $("#mktsub");
+  if (!bar) return;
+  const P = () => $("#stratpanel"), C = () => document.querySelector("#view-market .cols");
+  const modes = [["all", "✨ Overview"], ["picks", "🎯 Picks"], ["mtx", "🗺 Matrix"], ["strat", "🧠 Strategies"]];
+  let cur = "all";
+  const apply = () => {
+    const cols = C(), strat = P();
+    if (!cols || !strat) return;
+    const picksPanel = cols.children[0], mtxPanel = cols.children[1];
+    strat.style.display = (cur === "all" || cur === "strat") ? "" : "none";
+    picksPanel.style.display = (cur === "all" || cur === "picks") ? "" : "none";
+    mtxPanel.style.display = (cur === "all" || cur === "mtx") ? "" : "none";
+    cols.style.gridTemplateColumns = cur === "all" ? "" : "1fr";
+    bar.querySelectorAll("button").forEach(b =>
+      b.setAttribute("aria-selected", b.dataset.m === cur ? "true" : "false"));
+  };
+  modes.forEach(([m, label]) => {
+    const b = el("button", null, label);
+    b.type = "button"; b.dataset.m = m;
+    b.addEventListener("click", () => { cur = m; apply(); });
+    bar.appendChild(b);
+  });
+  apply();
+})();
+
+/* ============ SUB-TABS: Learn tab (grouped by theme) ============ */
+(function () {
+  if (typeof document === "undefined" || !document.body) return;  /* browser only */
+  const bar = $("#learnsub");
+  if (!bar) return;
+  const panel = bar.closest ? bar.closest(".panel") : null;
+  if (!panel) return;
+  const CATS = [
+    ["all", "✨ All"],
+    ["money", "💵 Money & inflation"],
+    ["rates", "🏦 Rates & bonds"],
+    ["fx", "💲 Dollar, gold & mood"],
+    ["assets", "📊 Stocks & crypto"],
+    ["cheat", "⚡ Cheat sheet"],
+  ];
+  const MAP = [
+    [/money supply|CPI|PPI|QE/i, "money"],
+    [/interest rates|bonds & yields|yield curve/i, "rates"],
+    [/DXY|gold|VIX|risk-on|jobs/i, "fx"],
+    [/company numbers|crypto-specific|liquidity, spreads/i, "assets"],
+    [/quick reference/i, "cheat"],
+  ];
+  /* walk the panel: each h3 starts a block; tag it and everything until the next h3 */
+  let curCat = null;
+  [...panel.children].forEach(elm => {
+    if (elm.tagName === "H3") {
+      curCat = null;
+      for (const [rx, c] of MAP) if (rx.test(elm.textContent)) { curCat = c; break; }
+    }
+    if (curCat) elm.dataset.cat = curCat;
+  });
+  let sel2 = "all";
+  const apply = () => {
+    [...panel.children].forEach(elm => {
+      if (!elm.dataset.cat) return;
+      elm.style.display = (sel2 === "all" || elm.dataset.cat === sel2) ? "" : "none";
+    });
+    bar.querySelectorAll("button").forEach(b =>
+      b.setAttribute("aria-selected", b.dataset.c === sel2 ? "true" : "false"));
+  };
+  CATS.forEach(([c, label]) => {
+    const b = el("button", null, label);
+    b.type = "button"; b.dataset.c = c;
+    b.addEventListener("click", () => { sel2 = c; apply(); });
+    bar.appendChild(b);
+  });
+  apply();
 })();
 </script></body></html>
