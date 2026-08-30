@@ -17,7 +17,7 @@ import datetime as dt
 import hashlib, json, os, re, sys, time
 
 from universe import all_instruments
-from news import FEEDS as GLOBAL_FEEDS, entry_time
+from news import FEEDS as GLOBAL_FEEDS, entry_time, transmission_for
 
 OUT = "site/data/news.json"
 MAX_ITEMS = 300
@@ -29,6 +29,7 @@ REGIONAL_FEEDS = {
     "ChinaHK": ["https://news.google.com/rss/search?q=%22hang+seng%22+OR+%22china+stocks%22+OR+%22hong+kong+stocks%22&hl=en&gl=US&ceid=US:en"],
     "UK": ["https://news.google.com/rss/search?q=%22ftse%22+OR+%22bank+of+england%22&hl=en-GB&gl=GB&ceid=GB:en"],
     "Europe": ["https://news.google.com/rss/search?q=%22dax%22+OR+%22ecb%22+OR+%22euro+zone%22&hl=en&gl=US&ceid=US:en"],
+    "Emerging": ["https://news.google.com/rss/search?q=%22emerging+markets%22+OR+%22brazil+stocks%22+OR+%22south+africa+economy%22+OR+%22latin+america%22+OR+lithium+OR+%22copper+mining%22&hl=en&gl=US&ceid=US:en"],
 }
 
 DOMAIN_BY_CAT = {"🌍 Markets & Macro": "Macro", "💱 FX & Central Banks": "FX",
@@ -42,6 +43,9 @@ KW = [  # (regex, domain, sector, region)
     (r"\b(bank of japan|boj|yen|nikkei)\b", "Macro", "", "Japan"),
     (r"\b(rbi|nifty|sensex|rupee)\b", "Macro", "", "India"),
     (r"\b(pboc|hang seng|yuan|renminbi)\b", "Macro", "", "ChinaHK"),
+    (r"\b(emerging markets?|brazil|mexico|argentina|chile|colombia|peru|south africa"
+     r"|johannesburg|bovespa|indonesia|turkey|kazakhstan|latin america)\b",
+     "Macro", "", "Emerging"),
     (r"\b(dollar|eur/usd|gbp/usd|forex|currency)\b", "FX", "", ""),
     (r"\b(earnings|profit|revenue|guidance|shares|stock|ipo|dividend|buyback)\b", "Stocks", "", ""),
 ]
@@ -95,9 +99,12 @@ def collect():
             seen.add(key)
             domain, sector, region, insts = tag(title)
             if region == "Global" and fallback_region: region = fallback_region
-            items.append({"t": int(when.timestamp() * 1000), "title": title[:220],
-                          "link": link, "src": src, "domain": domain,
-                          "sector": sector, "region": region, "instruments": insts})
+            item = {"t": int(when.timestamp() * 1000), "title": title[:220],
+                    "link": link, "src": src, "domain": domain,
+                    "sector": sector, "region": region, "instruments": insts}
+            tr = transmission_for(title)
+            if tr: item["trade"] = tr
+            items.append(item)
     for cat, urls in GLOBAL_FEEDS.items():
         for u in urls: add_feed(u)
     for region, urls in REGIONAL_FEEDS.items():
@@ -124,10 +131,16 @@ def mock_items():
         ("Tencent revenue tops estimates on gaming rebound", "Stocks", "Technology", "ChinaHK", ["0700.HK"]),
         ("ECB minutes show split on the pace of further cuts", "Macro", "", "Europe", ["EURUSD=X", "^GDAXI"]),
         ("Gold breaks to fresh highs as real yields fall", "Commodities", "", "Global", ["GC=F"]),
+        ("Ukrainian drone strike sets major Russian oil refinery ablaze", "Commodities", "", "Global", ["CL=F", "BZ=F"]),
     ]
-    return [{"t": now - i * 9e5, "title": t, "link": "https://example.com/" + str(i),
-             "src": "MOCK", "domain": d, "sector": s, "region": r, "instruments": ids}
-            for i, (t, d, s, r, ids) in enumerate(rows)]
+    out = []
+    for i, (t, d, s, r, ids) in enumerate(rows):
+        item = {"t": now - i * 9e5, "title": t, "link": "https://example.com/" + str(i),
+                "src": "MOCK", "domain": d, "sector": s, "region": r, "instruments": ids}
+        tr = transmission_for(t)
+        if tr: item["trade"] = tr
+        out.append(item)
+    return out
 
 def main():
     items = mock_items() if "--mock" in sys.argv else collect()

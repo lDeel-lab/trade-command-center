@@ -120,6 +120,39 @@ FILES = {
   S("2318.HK","Ping An","ChinaHK","Financials","HKEX:2318"), S("1299.HK","AIA","ChinaHK","Financials","HKEX:1299"),
   S("0941.HK","China Mobile","ChinaHK","Telecom","HKEX:941"),
 ],
+"emerging": [
+  # Liquidity-first emerging markets: every entry is a deeply-traded US listing/ADR
+  # (NYSE/NASDAQ), reachable through IG share dealing, IBKR and mostly Revolut —
+  # local-only exchanges (Johannesburg, São Paulo, El Salvador has none) are
+  # deliberately reached through their liquid ADRs instead.
+  # Latin America
+  S("MELI","MercadoLibre","Emerging","Consumer","NASDAQ:MELI",True,("mercado libre","mercadolibre")),
+  S("NU","Nu Holdings","Emerging","Financials","NYSE:NU",True,("nubank",)),
+  S("VALE","Vale","Emerging","Materials","NYSE:VALE",True,("iron ore miner",)),
+  S("PBR","Petrobras","Emerging","Energy","NYSE:PBR",True,("petrobras",)),
+  S("ITUB","Itaú Unibanco","Emerging","Financials","NYSE:ITUB",True,("itau",)),
+  S("ABEV","Ambev","Emerging","Consumer","NYSE:ABEV",True,("ambev",)),
+  S("AMX","América Móvil","Emerging","Telecom","NYSE:AMX",True,("america movil",)),
+  S("FMX","FEMSA","Emerging","Consumer","NYSE:FMX",True,("femsa",)),
+  S("CX","Cemex","Emerging","Materials","NYSE:CX",True,("cemex",)),
+  S("EC","Ecopetrol","Emerging","Energy","NYSE:EC",True,("ecopetrol",)),
+  S("BAP","Credicorp","Emerging","Financials","NYSE:BAP",True,("credicorp",)),
+  S("SCCO","Southern Copper","Emerging","Materials","NYSE:SCCO",True,("southern copper",)),
+  S("SQM","SQM (Lithium)","Emerging","Materials","NYSE:SQM",True,("sqm","lithium chile")),
+  S("YPF","YPF","Emerging","Energy","NYSE:YPF",True,("ypf",)),
+  S("GGAL","Grupo Galicia","Emerging","Financials","NASDAQ:GGAL",True,("galicia",)),
+  # Africa
+  S("AU","AngloGold Ashanti","Emerging","Materials","NYSE:AU",True,("anglogold",)),
+  S("GFI","Gold Fields","Emerging","Materials","NYSE:GFI",True,("gold fields",)),
+  S("SBSW","Sibanye-Stillwater","Emerging","Materials","NYSE:SBSW",True,("sibanye",)),
+  S("HMY","Harmony Gold","Emerging","Materials","NYSE:HMY",True,("harmony gold",)),
+  # Asia & beyond
+  S("SE","Sea Limited","Emerging","Technology","NYSE:SE",True,("shopee","garena")),
+  S("GRAB","Grab Holdings","Emerging","Technology","NASDAQ:GRAB",True,("grab",)),
+  S("TLK","Telkom Indonesia","Emerging","Telecom","NYSE:TLK",True,("telkom indonesia",)),
+  S("KSPI","Kaspi.kz","Emerging","Financials","NASDAQ:KSPI",True,("kaspi",)),
+  S("TKC","Turkcell","Emerging","Telecom","NYSE:TKC",True,("turkcell",)),
+],
 }
 
 # static descriptions for non-stock instruments (stocks get Yahoo's business summary)

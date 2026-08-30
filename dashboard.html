@@ -3,163 +3,301 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Trade Command Center — Crypto Live (Phase 1)</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self' https://api.bybit.com https://api.llama.fi https://api.coingecko.com https://ldeel-lab.github.io; frame-src https://s.tradingview.com; base-uri 'none'; form-action 'none'">
+<title>Trade Command Center</title>
 <style>
 :root{
   color-scheme: dark;
-  --page:#0d0d0d; --surface:#1a1a19; --surface2:#222220; --ink:#ffffff;
-  --ink2:#c3c2b7; --muted:#898781; --grid:#2c2c2a; --border:rgba(255,255,255,.10);
-  --s1:#3987e5; --s2:#d95926; --s3:#199e70;
-  --good:#0ca30c; --crit:#d03b3b; --warn:#fab219; --goodtext:#0ca30c;
+  --page:#07111f; --surface:#0e1b2d; --surface2:#12243a; --ink:#edf5ff;
+  --ink2:#b5c8db; --muted:#9eb2c8; --grid:#1d3a57; --border:#243b55;
+  --s1:#8ca7ff; --s2:#5ee7d6; --s3:#61d095;
+  --good:#61d095; --crit:#ff6b7a; --warn:#ffc857; --goodtext:#61d095;
+  --chip:#17314d; --shadow:0 18px 45px rgba(0,0,0,.24); --radius:16px;
+  --grad:linear-gradient(135deg,#5ee7d6,#8ca7ff);
 }
 :root[data-theme="light"]{
   color-scheme: light;
-  --page:#f9f9f7; --surface:#fcfcfb; --surface2:#f0efec; --ink:#0b0b0b;
-  --ink2:#52514e; --muted:#898781; --grid:#e1e0d9; --border:rgba(11,11,11,.10);
-  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --goodtext:#006300;
+  --page:#eef2f8; --surface:#ffffff; --surface2:#f2f5fa; --ink:#122033;
+  --ink2:#3b526b; --muted:#64778c; --grid:#dde5ef; --border:#d3ddea;
+  --s1:#3b62d6; --s2:#0e9c8b; --s3:#188a54;
+  --good:#188a54; --crit:#cd3448; --warn:#a97b09; --goodtext:#188a54;
+  --chip:#e6edf7; --shadow:0 14px 34px rgba(24,44,70,.10);
+  --grad:linear-gradient(135deg,#0e9c8b,#3b62d6);
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--page);color:var(--ink);
-  font:13.5px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
-.wrap{max-width:1500px;margin:0 auto;padding:14px 14px 40px}
-header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px}
-h1{font-size:19px;margin:0}
-.stamp{font-size:12px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
-.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
-.dot.live{background:var(--good);box-shadow:0 0 6px var(--good)}
-.dot.ok{background:var(--s1)}
-.dot.err{background:var(--crit)}
-.dot.wait{background:var(--warn)}
+html{scroll-behavior:smooth}
+body{margin:0;color:var(--ink);min-height:100vh;background:var(--page);
+  font:14px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  position:relative;overflow-x:hidden}
+/* animated aurora backdrop */
+body::before,body::after{content:"";position:fixed;z-index:-1;border-radius:50%;
+  filter:blur(90px);opacity:.5;pointer-events:none}
+body::before{width:60vw;height:60vw;top:-25vw;right:-18vw;
+  background:radial-gradient(circle at 30% 30%,rgba(140,167,255,.28),rgba(167,139,250,.14) 45%,transparent 70%);
+  animation:aurora1 26s ease-in-out infinite alternate}
+body::after{width:50vw;height:50vw;bottom:-22vw;left:-15vw;
+  background:radial-gradient(circle at 60% 60%,rgba(94,231,214,.22),rgba(97,208,149,.10) 50%,transparent 72%);
+  animation:aurora2 32s ease-in-out infinite alternate}
+@keyframes aurora1{from{transform:translate(0,0) rotate(0)}to{transform:translate(-9vw,7vh) rotate(28deg)}}
+@keyframes aurora2{from{transform:translate(0,0) scale(1)}to{transform:translate(8vw,-6vh) scale(1.18)}}
+:root[data-theme="light"] body::before{opacity:.32}
+:root[data-theme="light"] body::after{opacity:.28}
+@media (prefers-reduced-motion:reduce){body::before,body::after{animation:none}}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
-.themebtn{border:1px solid var(--border);border-radius:8px;padding:4px 10px;
-  font-size:12px;color:var(--ink2);margin-left:auto}
-.banner{display:none;background:#3a1010;color:#ff9d9d;border:1px solid var(--crit);
-  border-radius:9px;padding:8px 12px;font-size:12.5px;margin-bottom:10px}
-.banner.mock{display:block;background:#3a2f00;color:#ffd75e;border-color:var(--warn)}
-.alerts{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;min-height:44px}
+
+/* ============ APP SHELL ============ */
+.app{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;overflow:auto;padding:22px 14px;
+  background:color-mix(in srgb,var(--page) 82%,#000 8%);
+  border-right:1px solid var(--border);backdrop-filter:blur(12px)}
+:root[data-theme="light"] .sidebar{background:color-mix(in srgb,var(--surface) 88%,#fff)}
+.brand{display:flex;gap:11px;align-items:center;margin:0 6px 22px}
+.logo{width:42px;height:42px;flex:0 0 42px;border-radius:13px;background:var(--grad);
+  display:grid;place-items:center;color:#06101d;font-weight:900;font-size:20px;
+  box-shadow:0 0 20px rgba(94,231,214,.35);animation:logoGlow 5s ease-in-out infinite alternate}
+@keyframes logoGlow{from{box-shadow:0 0 12px rgba(94,231,214,.25)}
+  to{box-shadow:0 0 26px rgba(140,167,255,.5)}}
+@media (prefers-reduced-motion:reduce){.logo{animation:none}}
+.brand h1{font-size:15px;line-height:1.2;margin:0}
+.brand small{color:var(--muted);font-size:11px}
+.sbnote{margin-top:20px;padding:13px;border-radius:14px;background:var(--surface);
+  border:1px solid var(--border);font-size:11.5px;color:var(--muted);line-height:1.5}
+.main{padding:22px 26px 40px;min-width:0}
+
+/* sidebar nav (renderUniTabs fills #unitabs) */
+.unitabs{display:flex;flex-direction:column;gap:5px}
+.unitabs button{padding:9px 12px;border-radius:11px;text-align:left;font-weight:600;
+  font-size:13px;color:var(--muted);border:1px solid transparent;white-space:nowrap;
+  transition:background .18s,color .18s,border-color .18s,transform .18s}
+.unitabs button:hover{color:var(--ink);background:var(--surface2);transform:translateX(2px)}
+.unitabs button[aria-selected="true"]{color:var(--ink);background:var(--surface2);
+  border-color:var(--border);box-shadow:inset 3px 0 0 var(--s2)}
+.navlabel{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+  margin:14px 6px 4px;opacity:.8}
+.navlabel:first-child{margin-top:2px}
+
+/* ============ TOP BAR ============ */
+header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:19px;margin:0}
+.stamp{font-size:12px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
+.dot.live{background:var(--good);box-shadow:0 0 8px var(--good);animation:pulse 2.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+.dot.ok{background:var(--s1)} .dot.err{background:var(--crit)} .dot.wait{background:var(--warn)}
+.themebtn{border:1px solid var(--border);border-radius:999px;padding:5px 13px;
+  font-size:12px;color:var(--ink2);margin-left:auto;background:var(--surface)}
+.themebtn:hover{filter:brightness(1.15)}
+.phase{font-size:11px;color:var(--muted);border:1px solid var(--border);
+  background:var(--chip);border-radius:999px;padding:4px 11px}
+.banner{display:none;background:#3a1522;color:#ffb3bd;border:1px solid var(--crit);
+  border-radius:12px;padding:9px 14px;font-size:12.5px;margin-bottom:12px}
+.banner.mock{display:block;background:#2f2610;color:#ffd75e;border-color:var(--warn)}
+.alerts{display:flex;gap:8px;overflow-x:auto;padding:2px 0 12px;min-height:44px}
 .alert{flex:0 0 auto;background:var(--surface);border:1px solid var(--border);
-  border-left:3px solid var(--warn);border-radius:9px;padding:6px 12px;font-size:12.5px;
-  max-width:380px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  border-left:3px solid var(--warn);border-radius:11px;padding:7px 13px;font-size:12.5px;
+  max-width:380px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:var(--shadow)}
 .alert b{font-weight:650}
 .alert .t{color:var(--muted);margin-right:6px}
-.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px}
-/* universe tabs */
-.unitabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--grid);
-  margin-bottom:12px;padding-bottom:0}
-.unitabs button{padding:7px 12px;font-weight:600;font-size:12.5px;color:var(--ink2);
-  border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
-.unitabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--s1)}
-.unierr{background:var(--surface);border:1px dashed var(--border);border-radius:10px;
+
+/* ============ CARDS & PANELS ============ */
+.panel{background:linear-gradient(180deg,color-mix(in srgb,var(--surface2) 88%,transparent),color-mix(in srgb,var(--surface) 94%,transparent));
+  border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+:root[data-theme="light"] .panel{background:var(--surface)}
+h2{font-size:13px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink2);margin:0 0 12px;
+  position:relative;padding-bottom:7px}
+h2::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:42px;border-radius:3px;
+  background:var(--grad)}
+.legend{font-size:11.5px;color:var(--muted);margin-top:9px;line-height:1.5}
+.unierr{background:var(--surface);border:1px dashed var(--border);border-radius:12px;
   padding:14px;color:var(--ink2);font-size:12.5px;margin-bottom:12px;display:none}
-/* news */
-.newsfilters{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px}
-.nchip{border:1px solid var(--border);border-radius:999px;padding:3px 11px;
-  font-size:11.5px;color:var(--ink2)}
-.nchip[aria-pressed="true"]{background:var(--ink);color:var(--page);font-weight:650}
-.nitem{border-bottom:1px solid var(--grid);padding:9px 2px}
+
+/* scroll-reveal animation */
+.reveal{opacity:0;transform:translateY(16px);
+  transition:opacity .55s cubic-bezier(.2,.7,.3,1),transform .55s cubic-bezier(.2,.7,.3,1)}
+.reveal.vis{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){
+  .reveal{opacity:1;transform:none;transition:none}
+  html{scroll-behavior:auto}
+  .dot.live{animation:none}
+}
+
+/* ============ NEWS ============ */
+.newsfilters{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px}
+.nchip{border:1px solid var(--border);border-radius:999px;padding:4px 12px;
+  font-size:11.5px;color:var(--ink2);background:var(--surface);transition:all .15s}
+.nchip:hover{border-color:var(--muted)}
+.nchip[aria-pressed="true"]{background:var(--grad);color:#06101d;font-weight:700;border-color:transparent}
+.nitem{border-bottom:1px solid var(--grid);padding:10px 2px}
 .nitem:last-child{border-bottom:none}
-.nitem a{color:var(--ink);text-decoration:none;font-weight:550;font-size:13px}
-.nitem a:hover{text-decoration:underline}
-.ntags{font-size:11px;color:var(--muted);margin-top:2px}
-.ntag{display:inline-block;border:1px solid var(--border);border-radius:4px;
-  padding:0 5px;margin-right:4px}
+.nitem a{color:var(--ink);text-decoration:none;font-weight:550;font-size:13.5px}
+.nitem a:hover{color:var(--s1)}
+.ntags{font-size:11px;color:var(--muted);margin-top:3px}
+.ntag{display:inline-block;border:1px solid var(--border);border-radius:999px;
+  background:var(--chip);padding:0 8px;margin-right:4px}
 .ninst{color:var(--s1);cursor:pointer}
 .newstrail{border-top:1px solid var(--grid);margin-top:10px;padding-top:6px}
-h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
-.legend{font-size:11px;color:var(--muted);margin-top:8px}
-/* strategy bar */
-.stratrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
-.strat{border:1px solid var(--border);border-radius:10px;padding:9px 12px;text-align:left;
-  background:var(--surface2);font-weight:650;font-size:13px;cursor:pointer;width:100%}
-.strat.on{outline:2px solid var(--s1)}
-.strat .n{float:right;color:var(--s1);font-size:11.5px}
+
+/* ============ STRATEGIES ============ */
+.stratrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.strat{border:1px solid var(--border);border-radius:13px;padding:11px 13px;text-align:left;
+  background:var(--surface2);font-weight:650;font-size:13px;cursor:pointer;width:100%;
+  transition:transform .18s,box-shadow .18s,border-color .18s}
+.strat:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--muted)}
+.strat.on{outline:2px solid var(--s2);outline-offset:-1px}
+.stratrow .strat:nth-child(5n+1){border-top:3px solid #5ee7d6}
+.stratrow .strat:nth-child(5n+2){border-top:3px solid #8ca7ff}
+.stratrow .strat:nth-child(5n+3){border-top:3px solid #f472b6}
+.stratrow .strat:nth-child(5n+4){border-top:3px solid #ffc857}
+.stratrow .strat:nth-child(5n+5){border-top:3px solid #a78bfa}
+.strat .n{float:right;color:var(--s2);font-size:11.5px}
 .strat .d{display:block;font-weight:400;font-size:11px;color:var(--muted);margin-top:3px}
-/* layout */
-.cols{display:grid;grid-template-columns:330px 1fr;gap:12px;align-items:start;margin-top:12px}
-@media(max-width:1080px){.cols{grid-template-columns:1fr}}
-/* picks */
-.pick{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;
-  background:var(--surface2);cursor:pointer;width:100%;text-align:left;display:block}
-.pick:hover{border-color:var(--muted)}
-.pick .hd{display:flex;align-items:center;gap:8px}
-.pick .nm{font-weight:700;flex:1}
-.badge{font-size:10.5px;font-weight:700;border-radius:6px;padding:2px 7px;white-space:nowrap}
-.badge.LONG{background:var(--good);color:#fff}
-.badge.SHORT{background:var(--crit);color:#fff}
+
+/* ============ LAYOUT ============ */
+.cols{display:grid;grid-template-columns:340px minmax(0,1fr);gap:14px;align-items:start;margin-top:14px}
+@media(max-width:1150px){.cols{grid-template-columns:1fr}}
+
+/* ============ PICKS ============ */
+.pick{border:1px solid var(--border);border-radius:14px;padding:12px 14px;margin-bottom:11px;
+  background:var(--surface2);cursor:pointer;width:100%;text-align:left;display:block;
+  transition:transform .18s,box-shadow .18s,border-color .18s}
+.pick:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--muted)}
+.pick.plong{border-left:3px solid var(--good);
+  background:linear-gradient(135deg,rgba(97,208,149,.07),var(--surface2) 42%)}
+.pick.pshort{border-left:3px solid var(--crit);
+  background:linear-gradient(135deg,rgba(255,107,122,.07),var(--surface2) 42%)}
+/* staggered entrance for pick cards */
+.pick.reveal{transition-delay:0ms}
+.pick.reveal:nth-child(3){transition-delay:70ms}
+.pick.reveal:nth-child(4){transition-delay:140ms}
+.pick.reveal:nth-child(5){transition-delay:210ms}
+.pick.reveal:nth-child(6){transition-delay:280ms}
+.pick .hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pick .nm{font-weight:700;flex:1;font-size:14.5px}
+.badge{font-size:10.5px;font-weight:700;border-radius:999px;padding:3px 9px;white-space:nowrap}
+.badge.LONG{background:rgba(97,208,149,.16);color:var(--good);border:1px solid rgba(97,208,149,.4)}
+.badge.SHORT{background:rgba(255,107,122,.14);color:var(--crit);border:1px solid rgba(255,107,122,.4)}
 .badge.WAIT{border:1px solid var(--border);color:var(--ink2)}
-.conf{font-size:11px;color:var(--muted)}
-.why{font-size:12px;color:var(--ink2);margin:6px 0}
-.why span{display:inline-block;background:var(--page);border:1px solid var(--border);
-  border-radius:5px;padding:1px 6px;margin:2px 3px 0 0;font-size:11px}
-.lvls{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;font-size:11.5px;
+.conf{font-size:11.5px;color:var(--muted)}
+.why{font-size:12px;color:var(--ink2);margin:7px 0}
+.why span{display:inline-block;background:var(--chip);border:1px solid var(--border);
+  border-radius:999px;padding:2px 9px;margin:2px 4px 0 0;font-size:11px}
+.lvls{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;font-size:11.5px;
   font-variant-numeric:tabular-nums}
-.lvls div{background:var(--page);border-radius:6px;padding:4px 7px}
+.lvls div{background:var(--page);border:1px solid var(--grid);border-radius:9px;padding:5px 8px}
 .lvls .l{color:var(--muted);font-size:10px;display:block}
 .lvls .sl{color:var(--crit)} .lvls .tp{color:var(--goodtext)}
-.convrow{display:flex;align-items:center;gap:8px;margin:7px 0 2px;font-size:11.5px}
-.convbar{flex:1;height:6px;border-radius:4px;background:var(--grid);overflow:hidden}
-.convbar i{display:block;height:100%;border-radius:4px}
+.convrow{display:flex;align-items:center;gap:8px;margin:8px 0 2px;font-size:11.5px}
+.convbar{flex:1;height:7px;border-radius:999px;background:var(--grid);overflow:hidden}
+.convbar i{display:block;height:100%;border-radius:999px;
+  transition:width .9s cubic-bezier(.2,.8,.2,1)}
 .convlbl{font-weight:700;white-space:nowrap}
-/* matrix */
+
+/* ============ MATRIX ============ */
 .matrix{overflow-x:auto}
 table.mtx{border-collapse:collapse;font-size:11.5px;width:100%;min-width:660px}
-.mtx th{color:var(--muted);font-weight:600;font-size:10.5px;padding:5px 6px;text-align:center}
+.mtx th{color:var(--muted);font-weight:600;font-size:10.5px;padding:6px;text-align:center;
+  text-transform:uppercase;letter-spacing:.05em}
 .mtx th:first-child{text-align:left}
 .mtx td{padding:3px 4px;text-align:center}
 .mtx td:first-child{text-align:left;font-weight:650;white-space:nowrap;cursor:pointer}
 .mtx td:first-child .g{color:var(--muted);font-weight:400;font-size:10px;display:block}
 .mtx td:first-child .pr{color:var(--ink2);font-weight:500;font-size:10.5px;
-  font-variant-numeric:tabular-nums;margin-left:6px}
-.cell{display:block;border-radius:5px;padding:3px 2px;font-variant-numeric:tabular-nums;
-  font-weight:600;cursor:pointer;min-width:44px}
-.cell:hover{outline:1px solid var(--muted)}
-/* detail overlay */
-.ovl{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;
-  align-items:flex-start;justify-content:center;padding:3vh 12px;z-index:50;overflow:auto}
+  font-variant-numeric:tabular-nums;margin-left:6px;border-radius:5px;padding:0 4px}
+.pr.up{animation:flashUp 1.4s ease-out}
+.pr.down{animation:flashDown 1.4s ease-out}
+@keyframes flashUp{0%{background:rgba(97,208,149,.45)}100%{background:transparent}}
+@keyframes flashDown{0%{background:rgba(255,107,122,.45)}100%{background:transparent}}
+@media (prefers-reduced-motion:reduce){.pr.up,.pr.down{animation:none}}
+.cell{display:block;border-radius:7px;padding:4px 2px;font-variant-numeric:tabular-nums;
+  font-weight:600;cursor:pointer;min-width:44px;transition:transform .12s}
+.cell:hover{outline:1px solid var(--muted);transform:scale(1.06)}
+
+/* ============ DETAIL OVERLAY ============ */
+.ovl{position:fixed;inset:0;background:rgba(2,8,18,.7);display:none;
+  align-items:flex-start;justify-content:center;padding:3vh 14px;z-index:50;overflow:auto;
+  backdrop-filter:blur(3px)}
 .ovl.open{display:flex}
-.dpanel{background:var(--page);border:1px solid var(--border);border-radius:14px;
-  max-width:960px;width:100%;padding:18px 20px}
+.dpanel{background:var(--page);border:1px solid var(--border);border-radius:20px;
+  max-width:1240px;width:100%;padding:20px 22px;box-shadow:0 30px 80px rgba(0,0,0,.5);
+  animation:slideup .3s cubic-bezier(.2,.8,.3,1)}
+@keyframes slideup{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.dpanel{animation:none}}
 .dhd{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.dhd b{font-size:17px}
-.close{border:1px solid var(--border);border-radius:8px;padding:4px 10px;color:var(--ink2);
-  margin-left:auto}
+.dhd b{font-size:18px}
+.close{border:1px solid var(--border);border-radius:999px;padding:5px 13px;color:var(--ink2);
+  margin-left:auto;background:var(--surface)}
+.close:hover{filter:brightness(1.2)}
 .tvlink{font-size:12px;color:var(--s1);text-decoration:none;border:1px solid var(--border);
-  border-radius:8px;padding:4px 10px}
-.tfrow{display:flex;gap:4px;flex-wrap:wrap;margin:10px 0 6px}
-.tf{border:1px solid var(--border);border-radius:6px;padding:2px 9px;font-size:11.5px;color:var(--ink2)}
-.tf.on{background:var(--ink);color:var(--page);font-weight:700}
-.chartbox{background:var(--surface);border:1px solid var(--border);border-radius:10px;
-  padding:8px 6px 4px;margin:6px 0}
+  border-radius:999px;padding:5px 12px;background:var(--surface)}
+.tvlink:hover{filter:brightness(1.15)}
+/* detail grid: content left, instrument news rail right */
+.dgrid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start;margin-top:4px}
+@media(max-width:1000px){.dgrid{grid-template-columns:1fr}}
+.drail{position:sticky;top:0;max-height:88vh;overflow:auto;background:var(--surface);
+  border:1px solid var(--border);border-radius:14px;padding:12px 14px}
+.drail h3{margin:0 0 4px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tfrow{display:flex;gap:5px;flex-wrap:wrap;margin:10px 0 6px}
+.tf{border:1px solid var(--border);border-radius:999px;padding:3px 11px;font-size:11.5px;color:var(--ink2);
+  transition:all .15s}
+.tf.on{background:var(--grad);color:#06101d;font-weight:700;border-color:transparent}
+.chartbox{background:var(--surface);border:1px solid var(--border);border-radius:13px;
+  padding:8px 6px 4px;margin:8px 0}
 .chartbox svg{display:block;width:100%;height:auto}
 .keyrow{display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--muted);margin:4px 6px}
 .k{display:inline-block;width:9px;height:9px;border-radius:3px;vertical-align:-1px;margin-right:4px}
-.tvbox{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:8px 0;
+.tvbox{border:1px solid var(--border);border-radius:13px;overflow:hidden;margin:8px 0;
   height:440px;background:var(--surface)}
 .tvbox iframe{width:100%;height:100%;border:0}
-.dh3{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}
-.dp{font-size:12.5px;color:var(--ink2);margin:6px 0}
-.detailcols{display:grid;grid-template-columns:1.35fr 1fr;gap:18px}
-@media(max-width:860px){.detailcols{grid-template-columns:1fr}}
+.dh3{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:16px 0 5px}
+.dp{font-size:13px;color:var(--ink2);margin:6px 0;line-height:1.6}
+.detailcols{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:18px}
+@media(max-width:1240px){.detailcols{grid-template-columns:1fr}}
 .ticket{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
-.ticket td{padding:5px 8px;border-bottom:1px solid var(--grid);text-align:left}
+.ticket td{padding:6px 9px;border-bottom:1px solid var(--grid);text-align:left}
 .ticket td:last-child{text-align:right}
+.ticket tr:last-child td{border-bottom:none}
 .ticket .slt{color:var(--crit)} .ticket .tpt{color:var(--goodtext)}
-.tin{display:flex;gap:10px;margin-bottom:8px;font-size:12px}
+.tin{display:flex;gap:10px;margin-bottom:8px;font-size:12px;flex-wrap:wrap}
 .tin label{color:var(--muted)}
-.tin input{width:90px;font:inherit;background:var(--surface);color:var(--ink);
-  border:1px solid var(--border);border-radius:7px;padding:4px 8px}
+.tin input{width:95px;font:inherit;background:var(--surface);color:var(--ink);
+  border:1px solid var(--border);border-radius:9px;padding:5px 9px}
+.tin input:focus{border-color:var(--s1);outline:none}
 .checks{display:grid;grid-template-columns:1fr 1fr;gap:3px 12px;margin:8px 0;font-size:12px}
 .checks span.ok{color:var(--goodtext)} .checks span.no{color:var(--muted)}
-footer{margin-top:18px;color:var(--muted);font-size:11.5px;border-top:1px solid var(--grid);
-  padding-top:10px}
-.phase{font-size:11px;color:var(--muted);border:1px dashed var(--border);border-radius:8px;
-  padding:3px 9px}
+input,select,textarea{font:inherit}
+footer{margin-top:22px;color:var(--muted);font-size:11.5px;border-top:1px solid var(--grid);
+  padding-top:12px;line-height:1.55}
+
+/* ============ RESPONSIVE SHELL ============ */
+@media(max-width:1000px){
+  .app{display:block}
+  .sidebar{position:sticky;top:0;height:auto;z-index:40;padding:10px 12px;
+    border-right:none;border-bottom:1px solid var(--border)}
+  .brand{margin:0 0 8px}
+  .brand h1 br{display:none}
+  .unitabs{flex-direction:row;overflow-x:auto;gap:4px;padding-bottom:2px}
+  .unitabs button{padding:7px 11px;flex:0 0 auto}
+  .unitabs button:hover{transform:none}
+  .navlabel{display:none}
+  .sbnote{display:none}
+  .main{padding:14px 14px 32px}
+}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="app">
+<aside class="sidebar">
+  <div class="brand">
+    <div class="logo">⚡</div>
+    <div class="txt"><h1>Trade Command<br>Center</h1><small>Research → Wait → Trade</small></div>
+  </div>
+  <nav class="unitabs" id="unitabs"></nav>
+  <div class="sbnote"><b>Core rule</b><br>A great story is not a trade. It must be liquid,
+  holdable, technically confirmed and sensibly sized — otherwise it's a ⏳ WATCH, and that's a
+  perfectly good outcome.</div>
+</aside>
+<main class="main">
 <header>
-  <h1>⚡ Trade Command Center</h1>
   <span class="stamp">
     <button type="button" id="statbtn" style="padding:0;font-size:12px;color:var(--muted)"><span class="dot wait" id="statdot"></span><span id="statTxt">connecting to Bybit…</span> 🔬</button>
     <span class="phase">Crypto: live in-browser · other tabs &amp; news: served by the backend (hosted version)</span>
@@ -170,20 +308,38 @@ footer{margin-top:18px;color:var(--muted);font-size:11.5px;border-top:1px solid 
 <div class="panel" id="inspector" hidden style="margin-bottom:10px"></div>
 <div class="alerts" id="alerts"><span class="conf" style="align-self:center">Watching for squeezes, volume anomalies, structure breaks and liquidity sweeps…</span></div>
 
-<div class="unitabs" id="unitabs"></div>
 <div class="unierr" id="unierr"></div>
 
 <section id="view-logic" hidden>
   <div class="panel" style="max-width:900px">
     <h2>📖 How every recommendation is computed — the full logic, nothing hidden</h2>
 
-    <h3 class="dh3">Step 1 — Score each timeframe (−5 … +5)</h3>
-    <p class="dp">For every instrument on every timeframe, points are added up:
-    market structure from the swing sequence (higher-highs &amp; higher-lows +2, lower-highs &amp; lower-lows −2, mixed ±1);
-    price above the 50EMA +1, below −1; 50EMA above the 200EMA +0.5;
-    MACD histogram positive +1, negative −1; RSI above 55 +1, below 45 −1;
-    a Bollinger squeeze that just fired adds ±1 in its direction; a volume anomaly (&gt;2σ) adds ±0.5 with the candle.
-    The total is clamped to ±5 — that's the number in each matrix cell.</p>
+    <h3 class="dh3">The philosophy — spot-first, survive-first</h3>
+    <p class="dp">This system is built around four beliefs. <b>1) Spot first:</b> you buy the real asset and
+    hold it — no leverage that can liquidate you, no futures expiry, no funding fees bleeding you. Being wrong
+    then costs time, not everything. <b>2) Liquid assets only:</b> nothing enters the universe unless it trades
+    on a major venue (IG / Bybit) with real volume — an illiquid gem with a great story is still a trap,
+    because a handful of players can move it and you can't get out at a fair price. That rule is exactly how
+    the 🌍 Emerging tab works: Brazil, Mexico, Chile, Argentina, South Africa, Indonesia, Kazakhstan and more —
+    but always through their deeply-traded NYSE/NASDAQ listings (ADRs), never a thin local exchange, so every
+    name is reachable through IG, Interactive Brokers or Revolut with real liquidity behind it.
+    <b>3) Capital preservation beats profit chasing:</b> every plan starts from "what does being wrong cost?",
+    positions are sized from that, and assets that can realistically go to zero are flagged so a buy-and-hold
+    can survive a drawdown. <b>4) Watch/wait is a real answer:</b> most days the honest output is "nothing
+    meets the bar — here's what we're watching". A system that always finds you a trade is selling you
+    something. This one is allowed to say ⏳.</p>
+
+    <h3 class="dh3">Step 1 — Score each timeframe (−5 … +5), from de-correlated blocks</h3>
+    <p class="dp">For every instrument on every timeframe the score is built from five <b>independent evidence blocks</b>,
+    so five different views of the same uptrend can't stack into false confidence:
+    <b>trend structure ±2</b> (the swing sequence — HH/HL vs LH/LL);
+    <b>MA alignment ±1</b> (price vs 50EMA vs 200EMA, all in order or not);
+    <b>momentum ±1</b> (RSI and MACD histogram collapsed into ONE block, because they measure the same thing);
+    <b>volatility trigger ±1</b> (a Bollinger squeeze that just fired, in its direction);
+    <b>volume confirmation ±0.5</b> (a &gt;2σ anomaly agreeing with the candle).
+    Each timeframe also carries a <b>regime tag</b>: directional efficiency (how straight price travelled vs how far it wandered)
+    ≥0.3 = trending, below = ranging, plus an ATR percentile for volatility state. Trend strategies are hard-gated to
+    trending regimes and fades to ranging ones — the right tool is only offered in the right market.</p>
 
     <h3 class="dh3">Step 2 — Combine timeframe groups → trade type &amp; holding period</h3>
     <p class="dp">Timeframes form three groups: <b>LTF</b> (5m/15m/30m), <b>MTF</b> (1H/4H), <b>HTF</b> (D/W/Q).
@@ -194,17 +350,29 @@ footer{margin-top:18px;color:var(--muted);font-size:11.5px;border-top:1px solid 
     only HTF strong → <b>🗓 POSITION</b> (2–8 weeks, building);
     anything conflicting → MIXED, never shown as a trade.</p>
 
-    <h3 class="dh3">Step 3 — Conviction (0–100)</h3>
-    <p class="dp">Starts from the strength of the group agreement, then adjusts:
+    <h3 class="dh3">Step 3 — Direction, Entry, and Grade (three separate questions)</h3>
+    <p class="dp"><b>Direction conviction (0–100)</b> starts from the strength of the group agreement, then adjusts:
     a strategy trigger agreeing with the profile +8; fundamentals score (supply math for crypto, valuation/growth/quality for stocks) adds up to ±9 — asymmetric, since weak fundamentals help a short;
-    <b>extension guard:</b> price stretched &gt;2.2×ATR beyond the 50EMA in the trade direction −6, &gt;3×ATR −12 with a "chasing — wait for the pullback" warning. That guard exists precisely for the all-time-high problem: right direction, wrong moment.
-    Below 55 is never displayed; the picks list defaults to ≥70.</p>
+    <b>extension guard:</b> price stretched &gt;2.2×ATR beyond the 50EMA in the trade direction −6, &gt;3×ATR −12.
+    <b>Entry quality (0–100)</b> is scored separately — "is HERE a good place to enter?": stretch past the mean is penalised,
+    price pulled back near the 20EMA or into an unfilled FVG is rewarded, taut rubber-bands (p90+ MA-distance percentiles) and
+    RSI extremes are docked. The two combine into a <b>grade</b>: <b>A+</b> (rare — strong direction AND clean entry),
+    <b>A</b> (alert-worthy), <b>B</b>, <b>C</b>, or <b>⏳ WAIT</b> — entry quality below 40 is a hard WAIT no matter how good the
+    direction: right trade, wrong moment, and the card tells you to wait for the pullback instead of chasing.
+    Only A+ and A picks are sent to Telegram. That's the fix for the all-time-high problem — "direction good" no longer
+    means "buy now".</p>
 
     <h3 class="dh3">Step 4 — The trade plan</h3>
     <p class="dp">Entry prefers a <b>pullback into an unfilled fair value gap</b> behind price (within 2 ATR); otherwise at market ±0.25 ATR.
     Stop goes <b>beyond the liquidity pool</b> (clustered equal highs/lows) plus a 0.35 ATR buffer — outside the stop-hunt zone — falling back to 1.5×ATR when no clean pool exists.
-    TP1/TP2/TP3 sit at 1R/2R/3R of the actual stop distance. The suggested management: a third off at each target, stop to break-even after TP1.
-    Position size always derives from the stop so a full stop-out costs exactly your chosen risk % — <b>being wrong is designed to cost one small loss, never "getting stuck for ages". If the stop is hit, the trade is over.</b></p>
+    TP1/TP2/TP3 are <b>structural targets 🧱</b>: candidate levels are collected from real map features — opposing liquidity
+    pools, prior swings, value-area edges and the volume-profile POC — and the nearest sensible ones become the targets
+    (TP1 ≈ 0.6–1.8R, TP2 and TP3 further out), falling back to 1R/2R/3R only when no clean structure exists. The market
+    doesn't owe anyone round R-multiples; it does respect the levels where orders actually sit. The suggested management:
+    a third off at each target, stop to break-even after TP1.
+    Position size always derives from the stop so a full stop-out costs <b>≈ your chosen risk %</b> (gaps and slippage can
+    make it modestly worse, especially over weekends and news) — <b>being wrong is designed to cost one small loss, never
+    "getting stuck for ages". If the stop is hit, the trade is over.</b></p>
 
     <h3 class="dh3">The rubber-band meter (MA distance)</h3>
     <p class="dp">Every instrument's detail view shows its distance from EMA 9, EMA 21, SMA 50, SMA 100 and SMA 200 —
@@ -225,9 +393,11 @@ footer{margin-top:18px;color:var(--muted);font-size:11.5px;border-top:1px solid 
     <p class="dp">When an Anthropic API key is configured, every new ≥70 signal is independently reviewed by
     Claude before it is alerted: it reads the technicals, fundamentals and tagged headlines (and can run a
     live web search for fresh news) and verdicts the trade — <b>✅ CONFIRM</b>, <b>⚠️ CAUTION</b> with named
-    risks, or <b>⛔ VETO</b> (alert suppressed, but journaled so the Performance tab can score whether the
-    vetoes were right). The reviewer's job is to find reasons the signal is wrong — imminent earnings,
-    contradicting news, stale-data artifacts — not to agree with it.</p>
+    risks, or <b>⛔ VETO</b>. The verdict is <b>advisory only</b>: a veto is shown inside the alert but never
+    suppresses it, because an unproven filter must first earn its authority — the Performance tab scores every
+    verdict against real outcomes, and only if vetoes demonstrably save money should they ever be given the kill
+    switch. The reviewer's job is to find reasons the signal is wrong — imminent earnings, contradicting news,
+    stale-data artifacts — not to agree with it.</p>
 
     <h3 class="dh3">What this system does NOT know — read this honestly</h3>
     <p class="dp">It is a momentum/structure system: it will always lean with the trend, which means it will sometimes flag strength near tops — the extension guard and the against-the-trade section are the counterweights, not a cure.
@@ -235,6 +405,184 @@ footer{margin-top:18px;color:var(--muted);font-size:11.5px;border-top:1px solid 
     It doesn't know earnings dates, insider flows, or idiosyncratic company risk beyond the fundamentals score and tagged news.
     And nothing here is financial advice — it is a systematic second opinion that always tells you where it's wrong (the invalidation level) before you enter.</p>
   </div>
+</section>
+
+<section id="view-learn" hidden>
+  <div class="panel" style="max-width:920px">
+    <h2>📚 Knowledge base — the big-picture stuff, in plain English</h2>
+    <p class="dp">This is your reference shelf. Nothing here changes by the minute — it's the background
+    physics of markets. When a headline says "CPI came in hot" or "the yield curve un-inverted", come here,
+    find the term, and you'll know whether that's a tailwind or a headwind for what you hold.</p>
+
+    <h3 class="dh3">💵 Money supply &amp; M2 — how much money exists</h3>
+    <p class="dp"><b>M2</b> is simply a count of all the easily-spendable money in the economy: physical cash,
+    current accounts, savings accounts, and money-market funds. Think of it as the amount of water in the pool.
+    When central banks print money or make borrowing cheap, M2 grows — more money is sloshing around looking
+    for somewhere to go, and some of it always finds its way into stocks, crypto and property. When M2 shrinks
+    or flatlines, there is less spare money to push prices up.<br>
+    <b>Bullish when:</b> M2 is growing again after a squeeze — historically great for Bitcoin and growth stocks.<br>
+    <b>Bearish when:</b> M2 is contracting (money being drained) — risk assets fight an uphill battle.<br>
+    <b>Rule of thumb:</b> Bitcoin, more than almost anything, is a bet on the pool getting fuller.</p>
+
+    <h3 class="dh3">🛒 CPI — the inflation number everyone waits for</h3>
+    <p class="dp"><b>CPI (Consumer Price Index)</b> measures how much prices are rising for ordinary shoppers —
+    food, rent, petrol, services. Released monthly, and it moves markets within seconds.
+    Why it matters: central banks raise interest rates to fight high inflation, and higher rates hurt stocks
+    and crypto. So the market's reaction is really about what CPI means <i>for rates</i>.<br>
+    <b>Bullish when:</b> CPI comes in <i>lower</i> than expected ("cooling inflation") — rate cuts get closer,
+    risk assets rally.<br>
+    <b>Bearish when:</b> CPI comes in <i>hotter</i> than expected — rate cuts get pushed out, dollar jumps,
+    stocks and crypto sell off.<br>
+    <b>Watch "Core CPI"</b> too — the same measure with food and energy stripped out (they're volatile).
+    Central banks trust Core more than the headline number.</p>
+
+    <h3 class="dh3">🏭 PPI — inflation upstream, in the factories</h3>
+    <p class="dp"><b>PPI (Producer Price Index)</b> measures the prices <i>businesses</i> pay each other —
+    raw materials, components, wholesale goods. It's the same story as CPI but earlier in the pipeline:
+    if factories are paying more today, shops charge more in a few months. Traders use PPI as a
+    <b>preview of where CPI is heading</b>.<br>
+    <b>Bullish when:</b> PPI is falling — the inflation pipeline is emptying, future CPI likely cooler.<br>
+    <b>Bearish when:</b> PPI is surging — inflation is being cooked upstream and will show in CPI later.</p>
+
+    <h3 class="dh3">🏦 Interest rates — the price of money, and the master switch</h3>
+    <p class="dp">When the Fed (US), Bank of England or ECB moves rates, they change the price of borrowing
+    for the entire world. <b>Rates up</b> = loans and mortgages cost more, companies invest less, and — crucially —
+    boring savings accounts start paying decent interest, so money leaves risky assets. <b>Rates down</b> =
+    borrowing is cheap, savings pay nothing, and money is pushed out along the risk curve into stocks and crypto.<br>
+    <b>Bullish:</b> rate <i>cuts</i>, or even just hints of cuts ("dovish" talk).<br>
+    <b>Bearish:</b> rate <i>hikes</i> or "higher for longer" talk ("hawkish").<br>
+    <b>Nuance:</b> the first cut sometimes comes <i>because something broke</i> — cuts during a panic are not
+    the same as cuts during a soft landing. Ask <i>why</i> they're cutting.</p>
+
+    <h3 class="dh3">📈 Bonds &amp; yields — the "boring" market that bosses all the others</h3>
+    <p class="dp">A government bond is an IOU: lend the government money, get interest. The <b>yield</b> is the
+    interest rate that IOU effectively pays. Key mechanics: when bond <i>prices</i> fall, <i>yields</i> rise,
+    and vice versa — they're two ends of the same seesaw.
+    Why you care: the US 10-year yield is the world's benchmark "safe return". When it rises, every risky asset
+    must compete with a better safe alternative.<br>
+    <b>Bullish for stocks/crypto:</b> yields falling (bonds rallying) for calm reasons — inflation cooling.<br>
+    <b>Bearish for stocks/crypto:</b> yields rising fast — especially bad for tech/growth stocks and crypto,
+    whose promised profits sit far in the future and get discounted harder.<br>
+    <b>Panic exception:</b> when yields collapse <i>very</i> fast, it can mean recession fear — everything sells off together first.</p>
+
+    <h3 class="dh3">↕️ The yield curve — the market's recession radar</h3>
+    <p class="dp">Normally, lending for 10 years pays more than lending for 2 (you're locked in longer — you
+    demand more). Plot yields from short to long and you get an upward-sloping <b>yield curve</b>.
+    When short-term yields rise <i>above</i> long-term ones, the curve is <b>inverted</b> — the market is saying
+    "rates are painfully high now, but they'll be cut later because the economy will weaken."
+    An inverted curve has preceded most US recessions, usually with a long delay (12–24 months).<br>
+    <b>The sneaky part:</b> the danger moment is often not the inversion itself but the
+    <b>rapid un-inversion</b> ("steepening") as the recession actually arrives and cuts begin.<br>
+    <b>Plain rule:</b> inverted curve = late-cycle caution; fast re-steepening after inversion = be defensive;
+    a normal, gently sloping curve = healthy backdrop.</p>
+
+    <h3 class="dh3">💲 DXY — the dollar index, the seesaw under everything</h3>
+    <p class="dp"><b>DXY</b> measures the US dollar against a basket of other major currencies (mostly the euro).
+    Nearly everything you trade is priced <i>in dollars</i>, so the dollar is the ruler you measure with —
+    when the ruler grows, everything measured by it looks smaller.<br>
+    <b>Dollar UP</b> = headwind for gold, oil, copper, Bitcoin, emerging markets, and US companies selling abroad.<br>
+    <b>Dollar DOWN</b> = tailwind for all of the above — commodities and crypto love a weak dollar.<br>
+    <b>Why it moves:</b> mostly interest-rate differences (higher US rates attract money into dollars) and
+    safe-haven flows (crises make people hoard dollars).</p>
+
+    <h3 class="dh3">🥇 Gold &amp; real yields</h3>
+    <p class="dp">Gold pays no interest. So its main competitor is the <b>real yield</b> — what bonds pay
+    <i>after subtracting inflation</i>. When real yields are high, holding gold costs you the interest you gave up.
+    When real yields are low or negative, gold shines.<br>
+    <b>Bullish gold:</b> falling real yields, weakening dollar, war/crisis fear, central banks buying.<br>
+    <b>Bearish gold:</b> rising real yields and a strong dollar.<br>
+    Bitcoin increasingly trades on the same logic — "digital gold" — but with far bigger swings and a heavier
+    dose of pure risk appetite.</p>
+
+    <h3 class="dh3">🖨 QE &amp; QT — the liquidity tide</h3>
+    <p class="dp"><b>QE (quantitative easing)</b>: the central bank creates money and buys bonds with it,
+    flooding the system with cash — the tide comes in, and almost all boats rise.
+    <b>QT (quantitative tightening)</b>: the reverse — bonds roll off, money is drained, the tide goes out.<br>
+    <b>Bullish:</b> QE starting, QT ending or slowing.<br>
+    <b>Bearish:</b> QT running at full pace.<br>
+    Many big rallies and busts line up better with this liquidity tide than with earnings or news. It's the
+    slow-moving force underneath the daily noise — check it monthly, not hourly.</p>
+
+    <h3 class="dh3">😱 VIX — the fear gauge</h3>
+    <p class="dp"><b>VIX</b> measures how much protection (options) on the S&amp;P 500 costs — effectively, how
+    scared big money is. Under ~15: calm. 15–25: normal worry. Above 30: fear. Above 40: panic.<br>
+    <b>For a buyer:</b> a VIX spike above 35–40 has historically been closer to a <i>buying opportunity</i> than
+    a selling one — panic marks bottoms more often than tops. A VIX that's been pinned very low for months is
+    the opposite warning: everyone's relaxed, nobody's braced for a shock.</p>
+
+    <h3 class="dh3">🚦 Risk-on / risk-off — which mood is the market in?</h3>
+    <p class="dp"><b>Risk-ON:</b> money flows into stocks, crypto, emerging markets, copper, high-beta names;
+    the dollar and gold drift down. <b>Risk-OFF:</b> money runs to dollars, US bonds, gold, and the Swiss franc /
+    Japanese yen; everything risky sells off together.
+    Knowing the current mood matters because <b>in risk-off, correlations go to one</b> — your "diversified"
+    holdings all fall at once. That's why this dashboard's rotation tab and correlation guard exist.</p>
+
+    <h3 class="dh3">👷 Jobs data — NFP &amp; unemployment</h3>
+    <p class="dp"><b>NFP (Non-Farm Payrolls)</b>, first Friday of each month, counts new US jobs. It's read
+    through the rates lens, so the logic can feel upside-down:<br>
+    <b>Very strong jobs</b> = economy hot = rates stay high = often <i>bearish</i> for stocks in a
+    fighting-inflation era.<br>
+    <b>Modestly cooling jobs</b> = rate cuts closer = often <i>bullish</i>.<br>
+    <b>Collapsing jobs</b> = recession = bearish, cuts or no cuts.
+    Good news can be bad news, and bad news good — until it's <i>really</i> bad news.</p>
+
+    <h3 class="dh3">📊 Company numbers — EPS, P/E and forward P/E</h3>
+    <p class="dp"><b>EPS (earnings per share)</b>: company profit divided by number of shares — profit per slice.
+    <b>P/E (price-to-earnings)</b>: share price ÷ EPS — how many years of today's profit you're paying for.
+    A P/E of 15 is average-ish; 30+ means the market expects strong growth; under 10 means cheap or troubled — find out which.
+    <b>Forward P/E</b> uses <i>next year's expected</i> profit instead of last year's — better for fast-growing
+    companies, but it's built on forecasts that can be wrong.<br>
+    <b>The trap:</b> a low P/E is not automatically a bargain (dying businesses look cheap all the way down),
+    and a high P/E is not automatically a bubble (great growers can grow into it). P/E is a question, not an answer.</p>
+
+    <h3 class="dh3">₿ Crypto-specific forces</h3>
+    <p class="dp"><b>The halving</b>: roughly every 4 years, the new supply of Bitcoin per day is cut in half.
+    Less new supply with the same demand has historically preceded the big bull cycles (with a lag of months).
+    <b>ETF flows</b>: since spot ETFs launched, daily inflows/outflows are a direct read on institutional demand —
+    sustained inflows are structurally bullish. <b>Stablecoin supply</b> (USDT+USDC total): this is the cash
+    sitting on the sidelines <i>inside</i> crypto — growing supply = dry powder building.
+    <b>Funding rates</b>: what leveraged futures traders pay to hold positions. Heavily positive funding = crowd
+    is leveraged long = vulnerable to a flush. As a spot holder you don't pay funding — but extreme funding
+    warns you when a violent shakeout is likely. Shakeouts are when spot buyers get their prices.</p>
+
+    <h3 class="dh3">💧 Liquidity, spreads, float — why we're picky about what's tradeable</h3>
+    <p class="dp"><b>Liquidity</b> is how much you can buy or sell without moving the price. <b>Spread</b> is the
+    gap between the buy and sell price — a hidden fee you pay twice. <b>Float</b> is how many shares/coins
+    actually circulate freely. Thin liquidity + small float = a market a few players can shove around —
+    pumps, dumps, and 30% wicks. That's why this system's rule is: <b>no matter how exciting the story, an
+    illiquid asset never becomes a trade.</b> Liquid majors can still fall hard — but they can't easily be
+    <i>faked</i>, and you can always get out at a fair price.</p>
+
+    <h3 class="dh3">⚡ Quick reference — event → who wins, who loses</h3>
+    <div class="legend" style="overflow-x:auto">
+    <table class="ticket">
+      <tr><td style="color:var(--muted)">Event</td><td style="color:var(--muted)">Usually good for</td><td style="color:var(--muted)">Usually bad for</td></tr>
+      <tr><td>CPI cooler than expected</td><td>stocks, crypto, gold, bonds</td><td>dollar (DXY)</td></tr>
+      <tr><td>CPI hotter than expected</td><td>dollar</td><td>stocks, crypto, gold, bonds</td></tr>
+      <tr><td>Rate cut / dovish talk</td><td>stocks (esp. tech), crypto, gold</td><td>dollar</td></tr>
+      <tr><td>Rate hike / hawkish talk</td><td>dollar, banks (a bit)</td><td>tech, crypto, gold, property</td></tr>
+      <tr><td>M2 / liquidity expanding</td><td>Bitcoin, growth stocks, everything</td><td>—</td></tr>
+      <tr><td>QT / liquidity draining</td><td>cash, short-term bonds</td><td>risk assets broadly</td></tr>
+      <tr><td>Dollar weakening</td><td>gold, oil, copper, BTC, emerging mkts</td><td>—</td></tr>
+      <tr><td>Dollar surging</td><td>—</td><td>commodities, crypto, EM stocks</td></tr>
+      <tr><td>War / oil-supply shock</td><td>oil, gold, defence, energy stocks</td><td>airlines, consumer stocks, risk assets</td></tr>
+      <tr><td>China stimulus</td><td>copper, miners, China/HK stocks, luxury</td><td>—</td></tr>
+      <tr><td>Yields spiking fast</td><td>—</td><td>tech/growth, crypto, gold, property</td></tr>
+      <tr><td>VIX &gt; 35 panic</td><td>patient spot buyers (historically)</td><td>leveraged traders</td></tr>
+      <tr><td>Strong jobs (inflation era)</td><td>dollar</td><td>stocks, crypto (cuts delayed)</td></tr>
+      <tr><td>BTC ETF sustained inflows</td><td>BTC first, then majors</td><td>—</td></tr>
+    </table></div>
+    <p class="dp" style="color:var(--muted)">These are tendencies, not laws — context can flip any row.
+    The news tab's ⚡ transmission lines apply exactly this table to live headlines.</p>
+  </div>
+</section>
+
+<section id="view-risk" hidden>
+  <div class="panel" id="riskbox" style="max-width:920px"></div>
+</section>
+
+<section id="view-port" hidden>
+  <div class="panel" id="portbox"></div>
 </section>
 
 <section id="view-rot" hidden>
@@ -265,9 +613,13 @@ footer{margin-top:18px;color:var(--muted);font-size:11.5px;border-top:1px solid 
 <div class="cols">
   <div class="panel">
     <h2>🎯 Trade picks — MTF combination math, high conviction only</h2>
-    <label class="conf" style="display:block;margin-bottom:8px;cursor:pointer">
+    <label class="conf" style="display:block;margin-bottom:4px;cursor:pointer">
       <input type="checkbox" id="hiconv" checked> show only ≥70 conviction
       (unticked: adds the 55–69 watchlist; below 55 is never shown — it's noise)
+    </label>
+    <label class="conf" style="display:block;margin-bottom:8px;cursor:pointer">
+      <input type="checkbox" id="spotmode" checked> 🪙 spot buy-&amp;-hold mode
+      (hides shorts — you can't short spot — and flags assets risky to hold through a drawdown)
     </label>
     <div id="picks"></div>
   </div>
@@ -284,6 +636,7 @@ footer{margin-top:18px;color:var(--muted);font-size:11.5px;border-top:1px solid 
 <footer>⚠️ Systematic technical analysis, generated automatically — not financial advice.
 Volume profile approximated from OHLCV. Prices from Bybit spot (your execution venue may differ slightly).
 Conviction measures signal alignment, not a guaranteed win-rate.</footer>
+</main>
 </div>
 
 <div class="ovl" id="ovl" role="dialog" aria-modal="true">
@@ -315,7 +668,12 @@ const TFS = [
 ];
 const MOCK = new URLSearchParams(location.search).has("mock");
 const API = "https://api.bybit.com";
-const DATA_BASE = "data/";
+// When this file runs LOCALLY (saved on your computer), it pulls the data
+// files from the hosted site — so a local copy is fully functional while the
+// CODE stays under your control on your own disk. Data is JSON only: parsed,
+// never executed.
+const SITE = "https://ldeel-lab.github.io/trade-command-center/";
+const DATA_BASE = location.protocol === "file:" ? SITE + "data/" : "data/";
 const DATA = {};        // DATA[sym][tfKey] = {candles, feats, fetchedAt}
 const TICKERS = {};     // sym -> {last, chg24}
 const ALERTS = [];      // {time, icon, sym, text}
@@ -337,6 +695,7 @@ const UNIVERSES = [
   {key: "india",       label: "🇮🇳 India"},
   {key: "japan",       label: "🇯🇵 Japan"},
   {key: "chinahk",     label: "🇨🇳 China·HK"},
+  {key: "emerging",    label: "🌍 Emerging"},
 ];
 const UNI_STATE = {};   // key -> {loadedAt, generated, err}
 
@@ -380,9 +739,8 @@ async function loadUniverse(key) {
     }
     st.loadedAt = Date.now(); st.generated = j.generated; st.err = null;
   } catch (e) {
-    st.err = location.protocol === "file:"
-      ? "This tab needs the hosted version — the data files are built by GitHub Actions and served from GitHub Pages. Crypto works everywhere."
-      : "Could not load " + key + ".json: " + e.message;
+    st.err = "Could not load " + key + ".json (" + e.message + ")" +
+      (location.protocol === "file:" ? " — the local copy needs internet to pull data from your hosted site." : "");
   }
 }
 
@@ -393,9 +751,7 @@ async function loadNews() {
     const j = await r.json();
     NEWS.items = j.items || []; NEWS.generated = j.generated; NEWS.err = null;
   } catch (e) {
-    NEWS.err = location.protocol === "file:"
-      ? "News is built by the backend — open the hosted (GitHub Pages) version to see it."
-      : "News unavailable: " + e.message;
+    NEWS.err = "News unavailable: " + e.message;
   }
 }
 
@@ -406,9 +762,7 @@ async function loadJournal() {
     if (!r.ok) throw new Error("HTTP " + r.status);
     JOURNALD.data = await r.json(); JOURNALD.err = null;
   } catch (e) {
-    JOURNALD.err = location.protocol === "file:"
-      ? "The journal is built by the backend — open the hosted version."
-      : "No journal yet — it starts recording after the first backend cycle with the journal step deployed.";
+    JOURNALD.err = "No journal loaded yet (" + e.message + ").";
   }
 }
 
@@ -490,7 +844,8 @@ async function fetchTickers() {
   const res = await apiGet("/v5/market/tickers?category=spot");
   for (const t of res.list) {
     if (DATA[t.symbol] !== undefined || PAIRS.some(([s]) => s === t.symbol))
-      TICKERS[t.symbol] = {last: +t.lastPrice, chg24: +t.price24hPcnt * 100};
+      TICKERS[t.symbol] = {last: +t.lastPrice, chg24: +t.price24hPcnt * 100,
+        tov: +t.turnover24h || 0};
   }
 }
 
@@ -737,15 +1092,31 @@ function computeFeatures(candles) {
   const vp = volProfile(candles);
   const c = closes[n-1];
 
-  /* score: -5 … +5 */
-  let s = 0;
-  s += st.state;                                       // ±2 / ±1
-  s += c > e50[n-1] ? 1 : -1;
-  s += e50[n-1] > e200[n-1] ? 0.5 : -0.5;
-  s += hist[n-1] > 0 ? 1 : -1;
-  s += rsi[n-1] > 55 ? 1 : rsi[n-1] < 45 ? -1 : 0;
-  if (released) s += released.dir * 1;
-  if (volZ > 2) s += 0.5 * volDir;
+  /* regime: directional efficiency + volatility percentile */
+  const effN = Math.min(20, n - 1);
+  let pathSum = 0;
+  for (let i = n - effN; i < n; i++) pathSum += Math.abs(closes[i] - closes[i-1]);
+  const efficiency = pathSum ? Math.abs(closes[n-1] - closes[n-1-effN]) / pathSum : 0;
+  const atrHist = atr.slice(-100);
+  const volPct = Math.round(100 * atrHist.filter(x => x <= atr[n-1]).length / atrHist.length);
+  const regime = {
+    eff: efficiency, trending: efficiency >= 0.3, volPct,
+    label: (efficiency >= 0.3 ? "trending" : "ranging") + " · vol " +
+      (volPct >= 70 ? "expanding" : volPct <= 30 ? "compressed" : "normal"),
+  };
+
+  /* score: -5 … +5, built from DE-CORRELATED blocks so five views of the same
+     uptrend can't stack. Trend ±2 · MA-alignment ±1 · momentum ±1 (RSI+MACD
+     collapsed) · volatility trigger ±1 · volume confirmation ±0.5 */
+  const trendBlock = Math.max(-2, Math.min(2, st.state));
+  const maBlock = (c > e50[n-1] && e50[n-1] > e200[n-1]) ? 1 :
+    (c < e50[n-1] && e50[n-1] < e200[n-1]) ? -1 : 0;
+  const momoBlock = Math.max(-1, Math.min(1,
+    (rsi[n-1] > 55 ? 0.5 : rsi[n-1] < 45 ? -0.5 : 0) +
+    (hist[n-1] > 0 ? 0.5 : -0.5)));
+  const volaBlock = released ? released.dir : 0;
+  const volumeBlock = volZ > 2 ? 0.5 * volDir : 0;
+  const s = trendBlock + maBlock + momoBlock + volaBlock + volumeBlock;
   const score = Math.max(-5, Math.min(5, Math.round(s)));
 
   return {
@@ -754,7 +1125,7 @@ function computeFeatures(candles) {
     e20: e20[n-1], e50: e50[n-1], e200: e200[n-1],
     aboveE50: c > e50[n-1], e50aboveE200: e50[n-1] > e200[n-1],
     stretch: (c - e50[n-1]) / (atr[n-1] || 1),   // extension in ATRs beyond the 50EMA
-    maDist,
+    maDist, regime,
     bwPct: bw[n-1] != null && bwWin.length ?
       bwWin.filter(x=>x<=bw[n-1]).length / bwWin.length : null,
     inSqueeze, released, volZ, volDir,
@@ -837,6 +1208,38 @@ function mtfProfile(sym) {
     tier: conv >= 70 ? "HIGH" : conv >= 55 ? "MEDIUM" : "LOW"};
 }
 
+/* ============ ENTRY QUALITY (0–100) — separate from direction ============
+   Direction says WHERE the market is going; this says whether HERE is a good
+   place to get in. A great direction with a poor entry is a WAIT, not a buy. */
+function entryQuality(sym, tfKey, dir) {
+  const f = DATA[sym] && DATA[sym][tfKey] && DATA[sym][tfKey].feats;
+  if (!f) return 50;
+  let q = 70;
+  const s = (f.stretch || 0) * dir;                 // extension in trade direction
+  if (s > 1.5) q -= Math.min(30, (s - 1.5) * 12);
+  if (s < 0.3) q += 8;                              // at/behind the mean = better price
+  const taut = (f.maDist || []).filter(m => m.pctl != null && m.pctl >= 90 &&
+    Math.sign(m.atr) === dir).length;
+  q -= Math.min(24, taut * 12);                     // rubber bands taut = chasing
+  if (Math.abs(f.close - f.e20) < 0.5 * f.atr) q += 12;   // at the pullback zone
+  if (f.fvg.inside && f.fvg.inside.dir === dir) q += 10;  // entering in imbalance retest
+  if (dir === 1 && f.rsi > 72) q -= 10;
+  if (dir === -1 && f.rsi < 28) q -= 10;
+  if (f.rsi >= 40 && f.rsi <= 60) q += 6;           // momentum reset
+  return Math.max(5, Math.min(95, Math.round(q)));
+}
+
+/* grade: direction and entry must BOTH clear the bar — no compensation */
+function gradeOf(dirConv, entryQ) {
+  if (entryQ < 40) return {grade: "WAIT", quality: Math.round(dirConv * 0.5),
+    note: "direction good, entry poor — wait for the pullback"};
+  const quality = Math.round(0.55 * dirConv + 0.45 * entryQ);
+  const grade = quality >= 85 && dirConv >= 80 && entryQ >= 70 ? "A+" :
+    quality >= 75 && entryQ >= 55 ? "A" :
+    quality >= 65 ? "B" : "C";
+  return {grade, quality, note: ""};
+}
+
 /* extension guard: entering in the trade direction when price is already
    stretched far beyond the 50EMA is chasing — penalize conviction and say so */
 function extensionCheck(sym, tfKey, dir) {
@@ -896,12 +1299,31 @@ function buildPlan(sym, tfKey, dir) {
     slNote = base != null && sl > base ? "over liquidity/swing highs" : "1.5×ATR";
   }
   const risk = Math.abs(entry - sl);
-  const tp = r => dir === 1 ? entry + r*risk : entry - r*risk;
+  const rOf = lvl => (dir === 1 ? lvl - entry : entry - lvl) / risk;
+  const atR = r => dir === 1 ? entry + r*risk : entry - r*risk;
+  /* targets from STRUCTURE first (liquidity, swings, value area), R-multiples
+     as the report card — the market doesn't know where our R sits */
+  const cand = [];
+  const push = lvl => { if (lvl != null) { const r = rOf(lvl);
+    if (r > 0.4 && r < 6) cand.push(r); } };
+  if (dir === 1) { push(f.liq.above && f.liq.above.p);
+    push(f.structure.lastSwingHigh && f.structure.lastSwingHigh.p);
+    if (f.vp) { push(f.vp.vah); if (rOf(f.vp.poc) > 0.4) push(f.vp.poc); } }
+  else { push(f.liq.below && f.liq.below.p);
+    push(f.structure.lastSwingLow && f.structure.lastSwingLow.p);
+    if (f.vp) { push(f.vp.val); if (rOf(f.vp.poc) > 0.4) push(f.vp.poc); } }
+  cand.sort((a, b) => a - b);
+  const r1 = cand.find(r => r >= 0.6 && r <= 1.8) || 1;
+  const r2 = cand.find(r => r >= r1 + 0.5 && r <= 3.4) || Math.max(2, r1 + 0.8);
+  const r3 = cand.find(r => r >= r2 + 0.6) || Math.max(3, r2 + 1);
+  const structural = cand.length > 0;
   const inval = dir === 1
     ? (f.structure.lastSwingLow ? f.structure.lastSwingLow.p : sl)
     : (f.structure.lastSwingHigh ? f.structure.lastSwingHigh.p : sl);
   return {dir, tfKey, eLo, eHi, entry, entryNote, sl, slNote, risk,
-    tp1: tp(1), tp2: tp(2), tp3: tp(3), inval};
+    tp1: atR(r1), tp2: atR(r2), tp3: atR(Math.min(r3, 5)),
+    r1: +r1.toFixed(2), r2: +r2.toFixed(2), r3: +Math.min(r3, 5).toFixed(2),
+    structural, inval};
 }
 
 /* ============ STRATEGIES ============ */
@@ -961,6 +1383,7 @@ const STRATEGIES = [
       const f4 = d["4H"] && d["4H"].feats, fD = d["D"] && d["D"].feats;
       const f = d[tfKey] && d[tfKey].feats;
       if (!f4 || !fD || !f) return null;
+      if (fD.regime && !fD.regime.trending) return null;   // regime gate: trend strategies need a trend
       const dir = Math.sign(f4.score);
       if (dir === 0 || Math.sign(fD.score) !== dir) return null;
       if (Math.abs(f4.score) < 3 || Math.abs(fD.score) < 3) return null;
@@ -978,6 +1401,7 @@ const STRATEGIES = [
       const d = DATA[sym];
       const fD = d["D"] && d["D"].feats, f = d[tfKey] && d[tfKey].feats;
       if (!fD || !f || Math.abs(fD.score) > 1 || !f.vp) return null;
+      if (fD.regime && fD.regime.trending) return null;   // regime gate: fade only in ranges
       if (f.close >= f.vp.vah - 0.3*f.atr && f.rsi > 63)
         return {dir: -1, tags: ["at value-area high", `RSI ${f.rsi.toFixed(0)} stretched`,
           "target POC " + fmt(f.vp.poc)]};
@@ -1010,8 +1434,12 @@ function scanStrategies() {
           const ext = extensionCheck(sym, tfKey, m.dir);
           if (ext) { conv -= ext.pen; m.tags.push(ext.tag); }
           conv = Math.round(Math.max(0, Math.min(100, conv)));
+          const eq = entryQuality(sym, tfKey, m.dir);
+          const g = gradeOf(conv, eq);
+          if (g.note) m.tags.push(g.note);
           out[st.key].push({sym, tfKey, dir: m.dir, tags: m.tags,
-            plan: buildPlan(sym, tfKey, m.dir), conv, prof, strat: st});
+            plan: buildPlan(sym, tfKey, m.dir), conv, entryQ: eq,
+            grade: g.grade, quality: g.quality, prof, strat: st});
           break;  // first matching TF wins per symbol
         }
       }
@@ -1040,7 +1468,11 @@ function alignmentPicks() {
     const ext = extensionCheck(sym, tfKey, p.dir);
     if (ext) { conv -= ext.pen; tags.push(ext.tag); }
     conv = Math.round(Math.max(0, Math.min(100, conv)));
-    out.push({sym, tfKey, dir: p.dir, conv, prof: p, strat: ALIGN_STRAT,
+    const eq = entryQuality(sym, tfKey, p.dir);
+    const g = gradeOf(conv, eq);
+    if (g.note) tags.push(g.note);
+    out.push({sym, tfKey, dir: p.dir, conv, entryQ: eq, grade: g.grade,
+      quality: g.quality, prof: p, strat: ALIGN_STRAT,
       tags, plan: buildPlan(sym, tfKey, p.dir)});
   }
   return out.sort((a, b) => b.conv - a.conv);
@@ -1398,31 +1830,45 @@ function renderFundamentals(sym, name) {
 /* ============ UI STATE ============ */
 let activeStrat = null;         // strategy key or null
 let scanCache = {};             // latest scanStrategies() output
+const PREV_PX = {};             // sym -> last seen price (for the flash animation)
 let sel = null;                 // {sym, tfKey, dir, plan, stratName}
 let account = 10000, riskPct = 1;
 
 /* universe tab bar (News is a pseudo-tab) */
-let logicView = false, perfView = false, rotView = false;
+let logicView = false, perfView = false, rotView = false,
+    learnView = false, riskView = false, portView = false;
 function renderUniTabs() {
   const bar = $("#unitabs");
   bar.textContent = "";
+  bar.appendChild(el("div", "navlabel", "Markets"));
   UNIVERSES.concat([{key: "__rot", label: "🧭 Rotation"},
+                    {key: "__port", label: "💼 Portfolio"},
+                    {key: "__risk", label: "🧮 Risk"},
                     {key: "__news", label: "📰 News"},
                     {key: "__perf", label: "📊 Performance"},
+                    {key: "__learn", label: "📚 Learn"},
                     {key: "__logic", label: "📖 Logic"}]).forEach(u => {
+    if (u.key === "__rot") bar.appendChild(el("div", "navlabel", "Tools"));
     const b = el("button", null, u.label);
     b.type = "button";
+    const anyV = newsView || logicView || perfView || rotView || learnView || riskView || portView;
     const sel = u.key === "__news" ? newsView :
       u.key === "__logic" ? logicView :
       u.key === "__perf" ? perfView :
       u.key === "__rot" ? rotView :
-      (!newsView && !logicView && !perfView && !rotView && activeUni === u.key);
+      u.key === "__learn" ? learnView :
+      u.key === "__risk" ? riskView :
+      u.key === "__port" ? portView :
+      (!anyV && activeUni === u.key);
     b.setAttribute("aria-selected", sel ? "true" : "false");
     b.addEventListener("click", async () => {
-      newsView = logicView = perfView = rotView = false;
+      newsView = logicView = perfView = rotView = learnView = riskView = portView = false;
       if (u.key === "__news") newsView = true;
       else if (u.key === "__logic") logicView = true;
+      else if (u.key === "__learn") learnView = true;
       else if (u.key === "__perf") perfView = true;
+      else if (u.key === "__risk") { riskView = true; renderUniTabs(); renderRisk(); return; }
+      else if (u.key === "__port") { portView = true; renderUniTabs(); renderPort(); return; }
       else if (u.key === "__rot") { rotView = true; renderUniTabs(); renderRotation(); return; }
       else {
         activeUni = u.key;
@@ -1436,12 +1882,15 @@ function renderUniTabs() {
     });
     bar.appendChild(b);
   });
-  const any = newsView || logicView || perfView || rotView;
+  const any = newsView || logicView || perfView || rotView || learnView || riskView || portView;
   $("#view-market").hidden = any;
   $("#view-news").hidden = !newsView;
   $("#view-logic").hidden = !logicView;
   $("#view-perf").hidden = !perfView;
   $("#view-rot").hidden = !rotView;
+  $("#view-learn").hidden = !learnView;
+  $("#view-risk").hidden = !riskView;
+  $("#view-port").hidden = !portView;
 }
 
 /* ============ ROTATION TAB ============ */
@@ -1548,7 +1997,8 @@ function renderPerf() {
   box.appendChild(tiles);
   box.appendChild(el("div", "legend",
     "Outcomes use the thirds model the tickets recommend: ⅓ off at each TP, stop to " +
-    "break-even after TP1. SL = −1R · BE = +0.33R · TP2 then stopped = +1R · TP3 = +2R. " +
+    "break-even after TP1 — scored against each trade's own structural R multiples " +
+    "(SL = −1R; BE/TP2/TP3 credit the R actually banked at each target). " +
     "Below ~30 closed trades these numbers are noise, not truth — let it accumulate " +
     "before drawing conclusions. This is exactly the evidence that calibrates conviction."));
   /* calibration by conviction bucket + by type */
@@ -1573,6 +2023,8 @@ function renderPerf() {
     });
     box.appendChild(t);
   };
+  bucketTbl("Calibration by grade (does the A+/A/B split earn its keep?)", c =>
+    c.grade ? "★ " + c.grade : "pre-grade picks");
   bucketTbl("Calibration by conviction", c =>
     c.conv >= 90 ? "90–100" : c.conv >= 80 ? "80–89" : "70–79");
   bucketTbl("By AI review verdict (does the reviewer add value?)", c =>
@@ -1586,16 +2038,20 @@ function renderPerf() {
     rows.forEach(r => box.appendChild(el("div", "dp", fmtRow(r))));
   };
   list("Open (being tracked)", open.slice(-15).reverse(), p =>
-    `${p.dir === 1 ? "🟢" : "🔴"} ${p.name} · ${p.strat} · ${p.tfKey} · conv ${p.conv} · ` +
+    `${p.dir === 1 ? "🟢" : "🔴"} ${p.name} · ${p.strat} · ${p.tfKey} · ` +
+    (p.grade ? `★${p.grade} · dir ${p.conv}/entry ${p.entryQ} · ` : `conv ${p.conv} · `) +
     `entry ${fmt(p.entry)} · SL ${fmt(p.sl)} · TPs hit: ${p.tpHit || 0} · since ${ukTime(p.ts)} UK`);
   list("Recently closed", closed.slice(-15).reverse(), c =>
     `${c.r > 0 ? "✅" : c.r < 0 ? "❌" : "➖"} ${c.name} ${c.dir === 1 ? "long" : "short"} · ` +
-    `${c.outcome} → ${c.r >= 0 ? "+" : ""}${c.r}R · conv ${c.conv} · ${c.strat}`);
+    `${c.outcome} → ${c.r >= 0 ? "+" : ""}${c.r}R · ` +
+    (c.grade ? `★${c.grade} · ` : "") + `conv ${c.conv} · ${c.strat}`);
 }
 
 function showUniState() {
   const box = $("#unierr");
   const st = UNI_STATE[activeUni];
+  const anyV = newsView || logicView || perfView || rotView || learnView || riskView || portView;
+  if (anyV) { box.style.display = "none"; return; }
   if (!newsView && activeUni !== "crypto" && st && st.err) {
     box.style.display = "block"; box.textContent = "ℹ " + st.err;
   } else if (!newsView && activeUni !== "crypto" && !(st && st.loadedAt)) {
@@ -1669,15 +2125,22 @@ function renderPicks() {
   const box = $("#picks");
   box.textContent = "";
   const minConv = $("#hiconv").checked ? 70 : 55;
-  const list = (activeStrat ? (scanCache[activeStrat] || []) : allMatches())
+  const spot = $("#spotmode") && $("#spotmode").checked;
+  let list = (activeStrat ? (scanCache[activeStrat] || []) : allMatches())
     .filter(m => m.conv >= minConv);
+  const shortsHidden = spot ? list.filter(m => m.dir !== 1).length : 0;
+  if (spot) list = list.filter(m => m.dir === 1);
   if (!list.length) {
-    box.appendChild(el("div", "conf", activeStrat
+    box.appendChild(el("div", "conf", (activeStrat
       ? `No pair meets this strategy's conditions at ≥${minConv} conviction right now — that's the honest answer, not a bug.`
-      : `No ≥${minConv}-conviction trade right now. Flat is a position — the matrix below shows every pair's bias while you wait.` +
-        ($("#hiconv").checked ? " Untick the box to see the 55–69 watchlist." : "")));
+      : `No ≥${minConv}-conviction ${spot ? "long " : ""}trade right now. Flat is a position — the matrix below shows every pair's bias while you wait.` +
+        ($("#hiconv").checked ? " Untick the box to see the 55–69 watchlist." : "")) +
+      (shortsHidden ? ` (${shortsHidden} short setup${shortsHidden > 1 ? "s" : ""} hidden by spot mode.)` : "")));
     return;
   }
+  if (shortsHidden)
+    box.appendChild(el("div", "legend",
+      `🪙 Spot mode: ${shortsHidden} short setup${shortsHidden > 1 ? "s" : ""} hidden — you can't short spot. Untick to see them (IG spread bets can go short).`));
   /* correlation / heat guard: clustered same-direction picks are ONE bet */
   const shown = list.slice(0, 8), buckets = {};
   shown.forEach(m => {
@@ -1701,14 +2164,32 @@ function renderPicks() {
   shown.forEach(m => {
     const name = iName(m.sym);
     const side = m.dir === 1 ? "LONG" : "SHORT";
-    const card = el("button", "pick");
+    const card = el("button", "pick " + (m.dir === 1 ? "plong" : "pshort"));
     card.type = "button";
     const hd = el("div", "hd");
     hd.appendChild(el("span", "nm", name));
     hd.appendChild(el("span", "badge " + side, (m.dir===1?"▲ ":"▼ ") + side));
+    if (m.grade) {
+      const gb = el("span", "badge " + (m.grade === "A+" || m.grade === "A" ? "LONG" :
+        m.grade === "WAIT" ? "SHORT" : ""), m.grade === "WAIT" ? "⏳ WAIT" : "★ " + m.grade);
+      gb.style.marginLeft = "6px";
+      hd.appendChild(gb);
+    }
     card.appendChild(hd);
     card.appendChild(el("div", "conf",
-      `${m.strat.icon} ${m.strat.name} · signal TF ${m.tfKey} · conviction ${m.conv}/100`));
+      `${m.strat.icon} ${m.strat.name} · signal TF ${m.tfKey} · ` +
+      (m.entryQ != null
+        ? `direction ${m.conv}/100 · entry ${m.entryQ}/100 · grade ${m.grade}`
+        : `conviction ${m.conv}/100`)));
+    if (m.grade === "WAIT")
+      card.appendChild(el("div", "conf",
+        "⏳ Direction is good but price is stretched/poorly placed — wait for the pullback, don't chase."));
+    const saf = spotSafety(m.sym);
+    if (spot && saf.tier === "SPECULATIVE") {
+      const sw = el("div", "conf", "⚠ " + saf.note + " — for buy-&-hold, size tiny or skip.");
+      sw.style.color = "var(--warn)";
+      card.appendChild(sw);
+    }
     if (m.prof && m.prof.type !== "MIXED")
       card.appendChild(el("div", "conf",
         `${m.prof.meta.icon} ${m.prof.type} trade · hold ${m.prof.meta.hold} · ` +
@@ -1718,12 +2199,13 @@ function renderPicks() {
     card.appendChild(why);
     const p = m.plan;
     const lv = el("div", "lvls");
+    const R1 = p.r1 || 1, R2 = p.r2 || 2, R3 = p.r3 || 3;
     [["Entry zone", fmt(p.eLo) + "–" + fmt(p.eHi), ""],
      ["SL (" + p.slNote + ")", fmt(p.sl), "sl"],
-     ["TP1 / 1R", fmt(p.tp1), "tp"],
-     ["TP2 / 2R", fmt(p.tp2), "tp"],
-     ["TP3 / 3R", fmt(p.tp3), "tp"],
-     ["R:R to TP2", "2.0", ""]].forEach(([l, v, cls]) => {
+     ["TP1 / " + R1.toFixed(1) + "R" + (p.structural ? " 🧱" : ""), fmt(p.tp1), "tp"],
+     ["TP2 / " + R2.toFixed(1) + "R" + (p.structural ? " 🧱" : ""), fmt(p.tp2), "tp"],
+     ["TP3 / " + R3.toFixed(1) + "R" + (p.structural ? " 🧱" : ""), fmt(p.tp3), "tp"],
+     ["R:R to TP2", R2.toFixed(1), ""]].forEach(([l, v, cls]) => {
       const d = el("div");
       d.appendChild(el("span", "l", l));
       d.appendChild(el("span", cls || null, v));
@@ -1741,11 +2223,11 @@ function renderPicks() {
     conv.appendChild(el("span", "convlbl", m.conv >= 70 ? "HIGH" : m.conv >= 45 ? "MEDIUM" : "LOW"));
     card.appendChild(conv);
     const riskUSD = account * riskPct / 100;
-    const qty = riskUSD / p.risk;
+    const blend = (R1 + R2 + R3) / 3;
     card.appendChild(el("div", "conf",
       `On $${account.toLocaleString()} @ ${riskPct}% risk ($${riskUSD.toFixed(0)}): ` +
-      `TP1 +$${(qty*p.risk*1/3).toFixed(0)} · TP2 +$${(qty*p.risk*2/3).toFixed(0)} · ` +
-      `TP3 +$${(qty*p.risk*3/3).toFixed(0)} · all ≈ +$${(qty*p.risk*2).toFixed(0)}`));
+      `TP1 +$${(riskUSD*R1/3).toFixed(0)} · TP2 +$${(riskUSD*R2/3).toFixed(0)} · ` +
+      `TP3 +$${(riskUSD*R3/3).toFixed(0)} · all ≈ +$${(riskUSD*blend).toFixed(0)}`));
     card.addEventListener("click", () => openDetail(m.sym, m.tfKey, m.dir, m));
     box.appendChild(card);
   });
@@ -1798,8 +2280,15 @@ function renderMatrix() {
     const td = el("td");
     td.appendChild(document.createTextNode(r.name));
     const tk = TICKERS[r.sym];
-    if (tk) td.appendChild(el("span", "pr",
-      fmt(tk.last) + " " + (tk.chg24 >= 0 ? "▲" : "▼") + Math.abs(tk.chg24).toFixed(1) + "%"));
+    if (tk) {
+      const prev = PREV_PX[r.sym];
+      const pr = el("span", "pr" +
+        (prev != null && tk.last > prev ? " up" : prev != null && tk.last < prev ? " down" : ""),
+        fmt(tk.last) + " " + (tk.chg24 >= 0 ? "▲" : "▼") + Math.abs(tk.chg24).toFixed(1) + "%");
+      pr.style.color = tk.chg24 >= 0 ? "var(--good)" : "var(--crit)";
+      td.appendChild(pr);
+      PREV_PX[r.sym] = tk.last;
+    }
     const sub = [meta.sector || meta.cls,
       meta.cls === "stock" && !meta.ig ? "analysis-only" :
       meta.cls !== "crypto" ? "IG ✓" : "Bybit",
@@ -1864,6 +2353,25 @@ function renderNewsView() {
       tags.appendChild(s);
     });
     d.appendChild(tags);
+    if (x.trade) {
+      const tr = el("div", "ntags");
+      const b = el("span", null, `⚡ ${x.trade.event} — `);
+      b.style.color = "var(--warn)"; b.style.fontWeight = "650";
+      tr.appendChild(b);
+      tr.appendChild(el("span", null, "benefits: "));
+      x.trade.benefits.forEach((nm, i2) => {
+        const id = Object.keys(INSTR).find(k => iName(k) === nm);
+        if (id) {
+          const s = el("span", "ninst", nm + (i2 < x.trade.benefits.length - 1 ? ", " : ""));
+          s.addEventListener("click", ev => { ev.preventDefault();
+            const cv = confluence(id); openDetail(id, "1H", cv ? cv.dir : 1, null); });
+          tr.appendChild(s);
+        } else tr.appendChild(el("span", null, nm + (i2 < x.trade.benefits.length - 1 ? ", " : "")));
+      });
+      if (x.trade.hurts && x.trade.hurts.length)
+        tr.appendChild(el("span", null, " · pressured: " + x.trade.hurts.join(", ")));
+      d.appendChild(tr);
+    }
     list.appendChild(d);
   });
 }
@@ -1874,7 +2382,13 @@ function openDetail(sym, tfKey, dir, match) {
   const prof = match && match.prof ? match.prof : mtfProfile(sym);
   sel = {sym, tfKey, dir, plan, prof,
     stratName: match ? match.strat.icon + " " + match.strat.name : "Manual inspection",
-    conv: match ? match.conv : (prof ? prof.conv : 40)};
+    conv: match ? match.conv : (prof ? prof.conv : 40),
+    entryQ: match && match.entryQ != null ? match.entryQ : entryQuality(sym, tfKey, dir),
+    grade: match && match.grade ? match.grade : null};
+  if (!sel.grade && sel.entryQ != null) {
+    const g = gradeOf(sel.conv, sel.entryQ);
+    sel.grade = g.grade; sel.quality = g.quality;
+  } else if (match) sel.quality = match.quality;
   renderDetail();
   $("#ovl").classList.add("open");
 }
@@ -1910,7 +2424,7 @@ function renderDetail() {
     const txt =
 `Act as an independent risk reviewer for this trade signal from my systematic dashboard. Your job is to find reasons it is WRONG (imminent earnings/events, contradicting news — please web-search for the latest, over-extension, stale-data artifacts), then give a verdict: CONFIRM / CAUTION (with risks) / VETO, an adjusted conviction 0-100, and what you'd do differently.
 
-SIGNAL: ${side} ${name} (${(INSTR[sym]||{}).cls||""} · ${(INSTR[sym]||{}).sector||""} · ${(INSTR[sym]||{}).region||""}) — system conviction ${sel.conv}/100
+SIGNAL: ${side} ${name} (${(INSTR[sym]||{}).cls||""} · ${(INSTR[sym]||{}).sector||""} · ${(INSTR[sym]||{}).region||""}) — direction ${sel.conv}/100 · entry quality ${sel.entryQ != null ? sel.entryQ : "n/a"}/100 · grade ${sel.grade || "n/a"}
 Strategy: ${sel.stratName} · signal TF ${sel.tfKey}${prof2 ? ` · type ${prof2.type} (hold ${prof2.meta.hold})` : ""}
 Plan: entry ${fmt(plan.entry)} (${plan.entryNote}) · SL ${fmt(plan.sl)} (${plan.slNote}) · TP1 ${fmt(plan.tp1)} · TP2 ${fmt(plan.tp2)} · TP3 ${fmt(plan.tp3)} · invalidation ${fmt(plan.inval)}
 ${f ? `Technicals (${sel.tfKey}): RSI ${f.rsi.toFixed(0)} · stretch ${f.stretch.toFixed(1)}×ATR past 50EMA · structure ${f.structure.state} · squeeze ${f.inSqueeze ? "coiling" : f.released ? "fired " + (f.released.dir===1?"up":"down") : "no"} · volume z ${f.volZ.toFixed(1)}σ` : ""}
@@ -1942,6 +2456,27 @@ ${trail2 || "- none captured"}`;
   conv.appendChild(el("span", "convlbl",
     (sel.conv >= 70 ? "HIGH" : sel.conv >= 45 ? "MEDIUM" : "LOW") + " · " + sel.conv + "/100"));
   p.appendChild(conv);
+  if (sel.grade) {
+    const fD = DATA[sym] && DATA[sym].D && DATA[sym].D.feats;
+    const gl = el("div", "conf");
+    gl.style.fontWeight = "600";
+    gl.style.color = sel.grade === "WAIT" ? "var(--warn)" :
+      (sel.grade === "A+" || sel.grade === "A") ? "var(--goodtext)" : "var(--text)";
+    gl.textContent =
+      `Direction ${sel.conv}/100 · Entry quality ${sel.entryQ}/100 · Grade ${sel.grade}` +
+      (sel.quality != null ? ` (combined ${Math.round(sel.quality)})` : "") +
+      (fD && fD.regime ? ` · daily regime: ${fD.regime.label}` : "") +
+      (sel.grade === "WAIT" ? " — direction is fine but the entry is poor; wait for the pullback." : "");
+    p.appendChild(gl);
+  }
+  {
+    const saf = spotSafety(sym), lq = liqInfo(sym);
+    const sl2 = el("div", "conf",
+      `🪙 Hold-safety: ${saf.tier === "CORE" ? "🟢 CORE" : saf.tier === "QUALITY" ? "🔵 QUALITY" : "🟠 SPECULATIVE"} — ${saf.note}` +
+      ` · 💧 Liquidity: ${lq.label}`);
+    if (saf.tier === "SPECULATIVE") sl2.style.color = "var(--warn)";
+    p.appendChild(sl2);
+  }
   /* AI reviewer verdict, when this instrument has a journaled pick */
   if (JOURNALD.data) {
     const jp = (JOURNALD.data.open || []).concat((JOURNALD.data.closed || []).slice(-50))
@@ -2084,38 +2619,82 @@ ${trail2 || "- none captured"}`;
   } else {
     const shares = riskUSD / plan.risk;
     row("Position size", shares.toFixed(1) + " shares (≈" +
-      fmt(shares * plan.entry) + ") · analysis-only: not an IG market");
+      fmt(shares * plan.entry) + ") · not an IG market — shares via IBKR (or Revolut where listed)");
   }
+  const R1 = plan.r1 || 1, R2 = plan.r2 || 2, R3 = plan.r3 || 3;
+  const blendR = (R1 + R2 + R3) / 3;
   row("If SL " + fmt(plan.sl) + " hit", "−$" + riskUSD.toFixed(0) + " (−" + riskPct + "%)", "slt");
-  row("TP1 " + fmt(plan.tp1) + " (⅓ off)", "+$" + (riskUSD/3).toFixed(0) + " · stop → BE", "tpt");
-  row("TP2 " + fmt(plan.tp2) + " (⅓ off)", "+$" + (riskUSD*2/3).toFixed(0), "tpt");
-  row("TP3 " + fmt(plan.tp3) + " (final ⅓)", "+$" + (riskUSD).toFixed(0), "tpt");
-  row("All targets hit", "+$" + (riskUSD*2).toFixed(0) +
-    " (+" + (riskPct*2).toFixed(1) + "%) · R:R 2.0 blended");
+  row("TP1 " + fmt(plan.tp1) + " (⅓ off · " + R1.toFixed(1) + "R" + (plan.structural ? " 🧱" : "") + ")",
+    "+$" + (riskUSD*R1/3).toFixed(0) + " · stop → BE", "tpt");
+  row("TP2 " + fmt(plan.tp2) + " (⅓ off · " + R2.toFixed(1) + "R" + (plan.structural ? " 🧱" : "") + ")",
+    "+$" + (riskUSD*R2/3).toFixed(0), "tpt");
+  row("TP3 " + fmt(plan.tp3) + " (final ⅓ · " + R3.toFixed(1) + "R" + (plan.structural ? " 🧱" : "") + ")",
+    "+$" + (riskUSD*R3/3).toFixed(0), "tpt");
+  row("All targets hit", "+$" + (riskUSD*blendR).toFixed(0) +
+    " (+" + (riskPct*blendR).toFixed(1) + "%) · R:R " + blendR.toFixed(1) + " blended");
   right.appendChild(t);
   right.appendChild(el("div", "legend",
-    "Sized from the stop: a full stop-out always costs exactly your chosen risk %. " +
+    (plan.structural
+      ? "🧱 = target placed at real structure (liquidity pool / swing / value-area edge), not a fixed multiple. "
+      : "") +
+    "Sized from the stop: a full stop-out costs ≈ your chosen risk % — gaps and slippage can make it worse, especially over weekends and news. " +
     (meta.ig ? "IG estimate excludes spread and overnight funding; margin factors vary by market."
              : "No leverage assumed.")));
   cols.appendChild(right);
   p.appendChild(cols);
   p.appendChild(renderFundamentals(sym, name));
-  const trail = (NEWS.items || []).filter(x =>
-    (x.instruments || []).includes(sym)).slice(0, 6);
-  if (trail.length) {
-    const nt = el("div", "newstrail");
-    nt.appendChild(el("h3", "dh3", "News trail — headlines tagged to " + name));
-    trail.forEach(x => {
-      const d = el("div", "nitem");
-      const a = el("a", null, x.title);
-      a.href = x.link; a.target = "_blank"; a.rel = "noopener noreferrer";
-      d.appendChild(a);
-      d.appendChild(el("div", "ntags",
-        `${x.domain}${x.sector ? " › " + x.sector : ""} · ${x.region} · ${x.src} · ${ukTime(x.t)} UK`));
-      nt.appendChild(d);
-    });
-    p.appendChild(nt);
+
+  /* ---- news rail: ONLY news relevant to THIS instrument, on the right ---- */
+  const meta2 = INSTR[sym] || {};
+  const items = NEWS.items || [];
+  const direct = items.filter(x => (x.instruments || []).includes(sym));
+  const directSet = new Set(direct);
+  const sector = meta2.sector ? items.filter(x => !directSet.has(x) &&
+    x.sector && x.sector === meta2.sector).slice(0, 5) : [];
+  const sectorSet = new Set(sector);
+  const region = meta2.region ? items.filter(x => !directSet.has(x) && !sectorSet.has(x) &&
+    x.region && x.region === meta2.region).slice(0, 4) : [];
+  const rail = el("aside", "drail");
+  rail.appendChild(el("h3", null, "📰 News · " + name));
+  const railItem = x => {
+    const d = el("div", "nitem");
+    const a = el("a", null, x.title);
+    a.href = x.link; a.target = "_blank"; a.rel = "noopener noreferrer";
+    d.appendChild(a);
+    d.appendChild(el("div", "ntags",
+      `${x.domain || ""}${x.sector ? " › " + x.sector : ""} · ${x.region || ""} · ${x.src || ""} · ${ukTime(x.t)} UK`));
+    if (x.trade && x.trade.event) {
+      const tr2 = el("div", "ntags");
+      tr2.textContent = "⚡ " + x.trade.event;
+      tr2.style.color = "var(--warn)";
+      d.appendChild(tr2);
+    }
+    return d;
+  };
+  if (direct.length) {
+    direct.slice(0, 10).forEach(x => rail.appendChild(railItem(x)));
+  } else {
+    rail.appendChild(el("div", "conf",
+      "No headlines tagged directly to " + name + " in the last scan — that itself is information: no news-driven move to explain."));
   }
+  if (sector.length) {
+    rail.appendChild(el("h3", null, "Same sector · " + meta2.sector));
+    sector.forEach(x => rail.appendChild(railItem(x)));
+  }
+  if (region.length) {
+    rail.appendChild(el("h3", null, "Same region · " + meta2.region));
+    region.forEach(x => rail.appendChild(railItem(x)));
+  }
+  rail.appendChild(el("div", "legend",
+    "Filtered from the global feed: direct tags first, then sector, then region. Full feed lives in the News tab."));
+
+  /* rewrap: everything under the header goes left, the news rail right */
+  const dgrid = el("div", "dgrid");
+  const dleft = el("div");
+  [...p.children].slice(1).forEach(k => dleft.appendChild(k));
+  dgrid.appendChild(dleft);
+  dgrid.appendChild(rail);
+  p.appendChild(dgrid);
 }
 
 /* annotated SVG chart from real features */
@@ -2368,4 +2947,468 @@ async function boot() {
   setInterval(updateStamp, 5000);
 }
 boot();
+/* ============ SPOT SAFETY · LIQUIDITY · RISK · PORTFOLIO ============ */
+
+/* ---- hold-safety: "if I'm wrong and just hold, can this go to zero?" ---- */
+const CORE_CRYPTO = new Set(["BTCUSDT", "ETHUSDT"]);
+const QUALITY_CRYPTO = new Set(["SOLUSDT", "BNBUSDT", "XRPUSDT", "LINKUSDT",
+  "ADAUSDT", "LTCUSDT", "BCHUSDT", "TRXUSDT"]);
+function spotSafety(sym) {
+  const meta = INSTR[sym] || {};
+  if (meta.cls === "crypto") {
+    if (CORE_CRYPTO.has(sym)) return {tier: "CORE",
+      note: "deepest crypto asset — can still halve, extremely unlikely to die"};
+    if (QUALITY_CRYPTO.has(sym)) return {tier: "QUALITY",
+      note: "established large-cap — deep drawdowns happen (−70%+ in bear markets), death unlikely"};
+    return {tier: "SPECULATIVE",
+      note: "smaller/newer coin — CAN lose 90%+ and never recover; 'just hold it' is not a safety net here"};
+  }
+  if (meta.cls === "index") return {tier: "CORE",
+    note: "a whole market can't go to zero — the classic hold-through-anything asset"};
+  if (meta.cls === "commodity") return {tier: "CORE",
+    note: "physical commodities don't go to zero (but spread-bet positions carry funding costs over time)"};
+  if (meta.cls === "fx") return {tier: "QUALITY",
+    note: "major currency pair — doesn't go to zero, but also rarely trends for years"};
+  /* stocks: everything in this curated universe is a large cap */
+  return {tier: "QUALITY",
+    note: "large-cap stock — individual companies CAN fail (rare for this size); one stock is never a whole-portfolio bet"};
+}
+
+/* ---- liquidity: honest, from the data we actually have ---- */
+function liqInfo(sym) {
+  const meta = INSTR[sym] || {};
+  if (meta.cls === "crypto") {
+    const tov = TICKERS[sym] && TICKERS[sym].tov;
+    if (tov >= 100e6) return {tier: "A", label: "Tier A — $" + (tov/1e6).toFixed(0) + "m traded on Bybit in 24h, deep"};
+    if (tov >= 20e6) return {tier: "B", label: "Tier B — $" + (tov/1e6).toFixed(0) + "m/24h on Bybit, fine at normal size"};
+    if (tov > 0) return {tier: "C", label: "Tier C — only $" + (tov/1e6).toFixed(1) + "m/24h on Bybit — thin, expect slippage"};
+    return {tier: "A", label: "curated major (live volume loads with tickers)"};
+  }
+  return {tier: "A", label: "Tier A — curated IG universe (large-cap listings and major markets only)"};
+}
+
+/* ---- one price for anything we track ---- */
+function lastPrice(sym) {
+  if (TICKERS[sym] && isFinite(TICKERS[sym].last)) return TICKERS[sym].last;
+  const d = DATA[sym] && (DATA[sym].D || DATA[sym]["1H"]);
+  if (d && d.candles && d.candles.length) return d.candles[d.candles.length - 1].c;
+  return null;
+}
+
+/* ---- tiny safe localStorage wrapper (works on the site; degrades quietly) ---- */
+function lsGet(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+  catch (e) { return fallback; }
+}
+function lsSet(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); return true; }
+  catch (e) { return false; }
+}
+
+/* ============ 🧮 RISK TAB ============ */
+function riskSettings() {
+  return lsGet("tcc_risk", {capital: 300000, goal: 20000, riskPct: 0.5});
+}
+function renderRisk() {
+  if (!riskView) return;
+  const box = $("#riskbox");
+  box.textContent = "";
+  const s = riskSettings();
+  box.appendChild(el("h2", null, "🧮 Risk — the maths that keeps you in the game"));
+
+  /* --- inputs --- */
+  const form = el("div", "lvls");
+  const input = (label, id, val, step) => {
+    const d = el("div");
+    d.appendChild(el("span", "l", label));
+    const i = el("input");
+    i.type = "number"; i.id = id; i.value = val; i.step = step || "any";
+    i.style.cssText = "width:110px;background:var(--bg2,#111);color:inherit;border:1px solid var(--line,#333);border-radius:6px;padding:4px 8px";
+    d.appendChild(i);
+    form.appendChild(d);
+    return i;
+  };
+  const iCap = input("Trading capital $", "rk_cap", s.capital);
+  const iGoal = input("Monthly goal $", "rk_goal", s.goal);
+  const iRisk = input("Risk per trade %", "rk_risk", s.riskPct, "0.1");
+  box.appendChild(form);
+
+  const out = el("div");
+  box.appendChild(out);
+
+  const draw = () => {
+    const cap = +iCap.value || 0, goal = +iGoal.value || 0, rp = +iRisk.value || 0.5;
+    lsSet("tcc_risk", {capital: cap, goal: goal, riskPct: rp});
+    out.textContent = "";
+    const pctMo = cap ? goal / cap * 100 : 0;
+    const yr = (Math.pow(1 + pctMo/100, 12) - 1) * 100;
+    const riskUSD = cap * rp / 100;
+
+    out.appendChild(el("h3", "dh3", "Reality check on the goal"));
+    out.appendChild(el("p", "dp",
+      `$${goal.toLocaleString()} a month on $${cap.toLocaleString()} is ${pctMo.toFixed(1)}% per month — ` +
+      `${yr.toFixed(0)}% a year if compounded. For scale: the S&P 500 averages ~10% a YEAR, and the best fund managers in ` +
+      `history did ~20–30% a year. So treat the number as a direction to walk in, not a bar to clear every month — ` +
+      `chasing a monthly target is exactly what makes people force B-grade trades in week 4. ` +
+      `The system's job is to protect the ${cap ? "$" + cap.toLocaleString() : "capital"} first; the profits are what the market ` +
+      `hands over when conditions are right. Some months that's a lot, some months the right answer is ⏳ nothing.`));
+
+    out.appendChild(el("h3", "dh3", "What the goal needs in R (the useful version)"));
+    const needR = riskUSD ? goal / riskUSD : 0;
+    out.appendChild(el("p", "dp",
+      `At ${rp}% risk per trade, one R (one unit of risk) = $${riskUSD.toFixed(0)}. ` +
+      `The monthly goal = ${needR.toFixed(1)}R. A well-run system with a real edge nets roughly +0.2R to +0.5R per trade ` +
+      `after losers — so that's ~${Math.ceil(needR/0.35)} decent trades a month at +0.35R average. ` +
+      `If the A-grade pipeline only produces ${Math.max(2, Math.round(needR/8))}–${Math.max(4, Math.round(needR/4))} good setups, the honest choices are: accept a smaller month, ` +
+      `or raise risk per trade slightly — never lower the quality bar. The Performance tab tells you your actual R per trade once ~30 trades have closed.`));
+
+    out.appendChild(el("h3", "dh3", "Position sizing — with a stop (active trade)"));
+    const szForm = el("div", "lvls");
+    const mk = (lab, id, v) => { const d = el("div"); d.appendChild(el("span", "l", lab));
+      const i2 = el("input"); i2.type = "number"; i2.id = id; i2.value = v; i2.step = "any";
+      i2.style.cssText = iCap.style.cssText; d.appendChild(i2); szForm.appendChild(d); return i2; };
+    const iE = mk("Entry price", "rk_e", 100), iS = mk("Stop price", "rk_s", 92);
+    const szOut = el("p", "dp");
+    const calc = () => {
+      const e = +iE.value, st = +iS.value;
+      if (!e || !st || e === st) { szOut.textContent = "Enter an entry and a stop."; return; }
+      const dist = Math.abs(e - st), qty = riskUSD / dist, cost = qty * e;
+      szOut.innerHTML = `Risking $${riskUSD.toFixed(0)} with a ${(dist/e*100).toFixed(1)}% stop → ` +
+        `buy <b>${qty < 10 ? qty.toPrecision(4) : qty.toFixed(1)} units ≈ $${cost.toLocaleString(undefined,{maximumFractionDigits:0})}</b> ` +
+        `(${cap ? (cost/cap*100).toFixed(1) : "?"}% of capital). If the stop hits you lose $${riskUSD.toFixed(0)} — ` +
+        `${rp}% of the account — and nothing more. The tighter the stop, the bigger the position for the same risk.`;
+    };
+    iE.addEventListener("input", calc); iS.addEventListener("input", calc);
+    out.appendChild(szForm); out.appendChild(szOut); calc();
+
+    out.appendChild(el("h3", "dh3", "Position sizing — spot buy-&-hold (no stop, size IS the risk)"));
+    out.appendChild(el("p", "dp",
+      "When the plan is \"if I'm wrong I hold\", there is no stop to size from — the position size itself is the risk control. " +
+      "Sensible caps as % of capital:"));
+    const tt = el("table", "ticket");
+    [["Asset type", "Max per position", "Why"],
+     ["🟢 CORE (BTC, ETH, indices, gold)", cap ? "10–15% ($" + (cap*0.10/1000).toFixed(0) + "k–$" + (cap*0.15/1000).toFixed(0) + "k)" : "10–15%", "can halve, can't die — you can wait out a bear market"],
+     ["🔵 QUALITY (large-cap stocks, major alts)", cap ? "5–8% ($" + (cap*0.05/1000).toFixed(0) + "k–$" + (cap*0.08/1000).toFixed(0) + "k)" : "5–8%", "single names can break — no one company should hurt you badly"],
+     ["🟠 SPECULATIVE (small alts)", cap ? "1–2% ($" + (cap*0.01/1000).toFixed(0) + "k–$" + (cap*0.02/1000).toFixed(0) + "k)" : "1–2%", "these CAN go to ~zero; treat the whole position as the risk"],
+     ["All crypto combined", "≤ 25–30%", "one regime; it moves as one block on bad days"],
+     ["Any single sector", "≤ 20%", "correlated names are one bet wearing different names"],
+    ].forEach((r, i) => {
+      const tr = el("tr");
+      r.forEach(v => { const td = el("td", null, v); if (!i) td.style.color = "var(--muted)"; tr.appendChild(td); });
+      tt.appendChild(tr);
+    });
+    out.appendChild(tt);
+
+    out.appendChild(el("h3", "dh3", "The two tables to memorise"));
+    out.appendChild(el("p", "dp", "1) Losing streaks are NORMAL. With a 45% win rate, over 100 trades you should EXPECT a streak of ~8 losers in a row. At " +
+      rp + "% risk that streak costs ~" + (8*rp).toFixed(1) + "% of the account — annoying, survivable. At 5% risk per trade the same normal streak costs ~34%. Same system, same trades — one sizing survives, the other doesn't."));
+    const t2 = el("table", "ticket");
+    [["If you're down…", "You need…", "Comment"],
+     ["−10%", "+11%", "routine"],
+     ["−20%", "+25%", "recoverable with patience"],
+     ["−33%", "+50%", "a very good year, just to get back"],
+     ["−50%", "+100%", "years of work — this is what sizing rules prevent"],
+     ["−90%", "+900%", "practically game over"],
+    ].forEach((r, i) => {
+      const tr = el("tr");
+      r.forEach(v => { const td = el("td", null, v); if (!i) td.style.color = "var(--muted)"; tr.appendChild(td); });
+      t2.appendChild(tr);
+    });
+    out.appendChild(t2);
+    out.appendChild(el("p", "dp",
+      "2) Losses hurt more than gains help — the maths is not symmetric. That's the entire case for capital preservation: " +
+      "the game is won by the person who avoids the −50%, not the one who catches every +50%."));
+    out.appendChild(el("div", "legend",
+      "Settings save in this browser. Not financial advice — it's arithmetic."));
+  };
+  [iCap, iGoal, iRisk].forEach(i => i.addEventListener("input", draw));
+  draw();
+}
+
+/* ============ 💼 PORTFOLIO TAB ============ */
+function portData() {
+  return lsGet("tcc_port", {positions: [], realized: []});
+}
+function savePort(pd) {
+  if (!lsSet("tcc_port", pd))
+    alertBar("⚠ Couldn't save — this browser is blocking storage. Use Export to keep a copy.");
+}
+function alertBar(msg) {
+  const box = $("#portbox");
+  const d = el("div", "conf", msg);
+  d.style.color = "var(--warn)";
+  box.insertBefore(d, box.children[1] || null);
+}
+function posCalc(pos) {
+  const bought = pos.lots.reduce((a, l) => a + l.q, 0);
+  const cost = pos.lots.reduce((a, l) => a + l.q * l.p, 0);
+  const avg = bought ? cost / bought : 0;
+  const sold = (pos.sells || []).reduce((a, l) => a + l.q, 0);
+  const realized = (pos.sells || []).reduce((a, l) => a + l.q * (l.p - avg), 0);
+  const qty = bought - sold;
+  const live = lastPrice(pos.sym) || pos.manualPrice || null;
+  const value = live != null ? qty * live : null;
+  const invested = qty * avg;
+  const upl = value != null ? value - invested : null;
+  return {qty, avg, invested, live, value, upl, realized,
+    uplPct: invested && upl != null ? upl / invested * 100 : null};
+}
+
+async function renderPort() {
+  if (!portView) return;
+  const box = $("#portbox");
+  box.textContent = "";
+  box.appendChild(el("h2", null, "💼 Portfolio — what you actually hold, live"));
+  const pd = portData();
+
+  /* load universes lazily so stock prices resolve */
+  const need = new Set(pd.positions.map(p => (INSTR[p.sym] || {}).uni).filter(u => u && u !== "crypto"));
+  const missing = [...need].filter(u => !(UNI_STATE[u] && UNI_STATE[u].loadedAt));
+  if (missing.length) {
+    box.appendChild(el("div", "conf", "Loading prices for " + missing.join(", ") + "…"));
+    await Promise.all(missing.map(u => loadUniverse(u).catch(() => {})));
+    if (portView) return renderPort();
+  }
+
+  /* --- summary tiles --- */
+  const rows = pd.positions.map(p => ({p, c: posCalc(p)})).filter(r => r.c.qty > 1e-12);
+  const totInv = rows.reduce((a, r) => a + r.c.invested, 0);
+  const totVal = rows.reduce((a, r) => a + (r.c.value != null ? r.c.value : r.c.invested), 0);
+  const totUpl = totVal - totInv;
+  const totReal = pd.positions.reduce((a, p) => a + posCalc(p).realized, 0) +
+    (pd.realized || []).reduce((a, r) => a + r.pnl, 0);
+  const rs = riskSettings();
+  const tiles = el("div", "lvls");
+  [["Invested", "$" + totInv.toLocaleString(undefined, {maximumFractionDigits: 0})],
+   ["Current value", "$" + totVal.toLocaleString(undefined, {maximumFractionDigits: 0})],
+   ["Unrealised P&L", (totUpl >= 0 ? "+$" : "−$") + Math.abs(totUpl).toLocaleString(undefined, {maximumFractionDigits: 0}) +
+      (totInv ? " (" + (totUpl/totInv*100).toFixed(1) + "%)" : "")],
+   ["Realised P&L", (totReal >= 0 ? "+$" : "−$") + Math.abs(totReal).toLocaleString(undefined, {maximumFractionDigits: 0})],
+   ["Deployed", rs.capital ? (totInv / rs.capital * 100).toFixed(0) + "% of $" + (rs.capital/1000) + "k" : "—"],
+   ["Vs monthly goal", rs.goal ? ((totUpl + totReal) / rs.goal * 100).toFixed(0) + "% of $" + rs.goal.toLocaleString() : "—"],
+  ].forEach(([l, v]) => {
+    const d = el("div");
+    d.appendChild(el("span", "l", l));
+    const sp = el("span", null, v);
+    if (l.includes("P&L")) sp.style.color = v.startsWith("+") ? "var(--goodtext,#4caf50)" : "var(--crit,#f44)";
+    d.appendChild(sp);
+    tiles.appendChild(d);
+  });
+  box.appendChild(tiles);
+  box.appendChild(el("div", "legend",
+    "Saved in THIS browser only (nothing leaves your machine) — use Export for a backup or to move devices. " +
+    "Totals assume USD-quoted prices; UK/EU stocks quoted in pence/euros are summed at face value, so treat mixed-currency totals as approximate."));
+
+  /* --- add / trade form --- */
+  box.appendChild(el("h3", "dh3", "➕ Buy (new or add to existing) / 💰 Sell"));
+  const f = el("div", "lvls");
+  const mkIn = (lab, id, typ, val) => {
+    const d = el("div"); d.appendChild(el("span", "l", lab));
+    const i = el("input"); i.id = id; i.type = typ; if (val != null) i.value = val;
+    i.style.cssText = "width:130px;background:var(--bg2,#111);color:inherit;border:1px solid var(--line,#333);border-radius:6px;padding:4px 8px";
+    d.appendChild(i); f.appendChild(d); return i;
+  };
+  const iSym = mkIn("Instrument", "pf_sym", "text", "");
+  iSym.setAttribute("list", "pf_list"); iSym.placeholder = "type to search…";
+  const dl = el("datalist"); dl.id = "pf_list";
+  Object.keys(INSTR).forEach(id => {
+    const o = el("option"); o.value = INSTR[id].name; o.label = id; dl.appendChild(o);
+  });
+  f.appendChild(dl);
+  const iQty = mkIn("Quantity", "pf_qty", "number", "");
+  const iPx = mkIn("Price paid (blank = live)", "pf_px", "number", "");
+  box.appendChild(f);
+  const btnRow = el("div");
+  btnRow.style.cssText = "display:flex;gap:8px;margin:8px 0 4px";
+  const mkBtn = (txt, fn) => { const b = el("button", "tvlink", txt); b.type = "button";
+    b.addEventListener("click", fn); btnRow.appendChild(b); return b; };
+  const findSym = () => {
+    const t = iSym.value.trim().toLowerCase();
+    return Object.keys(INSTR).find(id => id.toLowerCase() === t ||
+      (INSTR[id].name || "").toLowerCase() === t) || null;
+  };
+  const msg = el("div", "conf");
+  mkBtn("🟢 Buy", () => {
+    const sym = findSym();
+    const q = +iQty.value, pxIn = +iPx.value;
+    const name = sym ? INSTR[sym].name : iSym.value.trim();
+    if (!name || !(q > 0)) { msg.textContent = "Need an instrument and a positive quantity."; return; }
+    const px = pxIn > 0 ? pxIn : (sym ? lastPrice(sym) : null);
+    if (!(px > 0)) { msg.textContent = "No live price for that — enter the price you paid."; return; }
+    const pd2 = portData();
+    let pos = pd2.positions.find(p => (sym && p.sym === sym) || p.name === name);
+    if (!pos) { pos = {id: (sym || name) + "-" + Date.now(), sym: sym || name, name, lots: [], sells: []};
+      if (!sym) pos.manualPrice = px;
+      pd2.positions.push(pos); }
+    pos.lots.push({q, p: px, t: Date.now()});
+    savePort(pd2); renderPort();
+  });
+  mkBtn("💰 Sell", () => {
+    const sym = findSym();
+    const q = +iQty.value, pxIn = +iPx.value;
+    const name = sym ? INSTR[sym].name : iSym.value.trim();
+    const pd2 = portData();
+    const pos = pd2.positions.find(p => (sym && p.sym === sym) || p.name === name);
+    if (!pos) { msg.textContent = "You don't hold that."; return; }
+    const c = posCalc(pos);
+    if (!(q > 0) || q > c.qty + 1e-12) { msg.textContent = `You hold ${c.qty} — can't sell ${q || "?"}.`; return; }
+    const px = pxIn > 0 ? pxIn : lastPrice(pos.sym);
+    if (!(px > 0)) { msg.textContent = "No live price — enter the sale price."; return; }
+    pos.sells = pos.sells || [];
+    pos.sells.push({q, p: px, t: Date.now()});
+    const c2 = posCalc(pos);
+    if (c2.qty <= 1e-12) {  /* fully closed → archive realized, remove position */
+      pd2.realized = pd2.realized || [];
+      pd2.realized.push({name: pos.name, sym: pos.sym, pnl: c2.realized, t: Date.now()});
+      pd2.positions = pd2.positions.filter(p => p !== pos);
+    }
+    savePort(pd2); renderPort();
+  });
+  mkBtn("📤 Export", () => {
+    const txt = JSON.stringify(portData());
+    (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject())
+      .then(() => { msg.textContent = "✓ Portfolio JSON copied — paste it somewhere safe."; })
+      .catch(() => { msg.textContent = txt; });
+  });
+  mkBtn("📥 Import", () => {
+    const area = el("textarea");
+    area.placeholder = "Paste exported portfolio JSON here, then click Import again";
+    area.style.cssText = "width:100%;height:80px;background:var(--bg2,#111);color:inherit;border:1px solid var(--line,#333);border-radius:6px;margin-top:6px";
+    if ($("#pf_imp")) {
+      try {
+        const j = JSON.parse($("#pf_imp").value);
+        if (j && Array.isArray(j.positions)) { savePort(j); renderPort(); return; }
+        msg.textContent = "That doesn't look like an exported portfolio.";
+      } catch (e) { msg.textContent = "Invalid JSON."; }
+      return;
+    }
+    area.id = "pf_imp";
+    btnRow.parentNode.insertBefore(area, btnRow.nextSibling);
+  });
+  box.appendChild(btnRow);
+  box.appendChild(msg);
+
+  /* --- positions table --- */
+  if (!rows.length) {
+    box.appendChild(el("p", "dp",
+      "No positions yet. When you take a trade from the picks list, record the buy here — " +
+      "the tab then tracks your average price, live P&L and portfolio weight automatically. " +
+      "Add to a position later with another Buy on the same instrument; the average recalculates."));
+  } else {
+    box.appendChild(el("h3", "dh3", "Holdings"));
+    const t = el("table", "ticket");
+    const hr = el("tr");
+    ["Asset", "Qty", "Avg buy", "Live", "Invested", "Value", "P&L", "Weight", "Safety", ""].forEach(h => {
+      const td = el("td", null, h); td.style.color = "var(--muted)"; hr.appendChild(td); });
+    t.appendChild(hr);
+    rows.sort((a, b) => (b.c.value || 0) - (a.c.value || 0)).forEach(({p, c}) => {
+      const tr = el("tr");
+      const saf = spotSafety(p.sym);
+      const cells = [
+        p.name, c.qty < 10 ? c.qty.toPrecision(4) : c.qty.toFixed(2),
+        fmt(c.avg), c.live != null ? fmt(c.live) : "?",
+        "$" + c.invested.toLocaleString(undefined, {maximumFractionDigits: 0}),
+        c.value != null ? "$" + c.value.toLocaleString(undefined, {maximumFractionDigits: 0}) : "?",
+        c.upl != null ? (c.upl >= 0 ? "+" : "−") + "$" + Math.abs(c.upl).toLocaleString(undefined, {maximumFractionDigits: 0}) +
+          " (" + (c.uplPct >= 0 ? "+" : "") + c.uplPct.toFixed(1) + "%)" : "?",
+        totVal ? ((c.value != null ? c.value : c.invested) / totVal * 100).toFixed(1) + "%" : "—",
+        saf.tier === "CORE" ? "🟢" : saf.tier === "QUALITY" ? "🔵" : "🟠",
+      ];
+      cells.forEach((v, i) => {
+        const td = el("td", null, v);
+        if (i === 6 && c.upl != null) td.style.color = c.upl >= 0 ? "var(--goodtext,#4caf50)" : "var(--crit,#f44)";
+        tr.appendChild(td);
+      });
+      const tdA = el("td");
+      const del = el("button", "close", "✕");
+      del.type = "button"; del.title = "Remove without recording a sale";
+      del.addEventListener("click", () => {
+        const pd2 = portData();
+        pd2.positions = pd2.positions.filter(x => x.id !== p.id);
+        savePort(pd2); renderPort();
+      });
+      tdA.appendChild(del);
+      tr.appendChild(tdA);
+      t.appendChild(tr);
+      /* lot detail line */
+      const tr2 = el("tr");
+      const td2 = el("td", null,
+        "↳ " + p.lots.map(l => `${l.q < 10 ? l.q.toPrecision(3) : l.q} @ ${fmt(l.p)} (${new Date(l.t).toLocaleDateString("en-GB")})`).join(" · ") +
+        ((p.sells || []).length ? " · sold: " + p.sells.map(l => `${l.q} @ ${fmt(l.p)}`).join(" · ") : ""));
+      td2.colSpan = 10; td2.style.color = "var(--muted)"; td2.style.fontSize = "11px";
+      tr2.appendChild(td2);
+      t.appendChild(tr2);
+    });
+    box.appendChild(t);
+
+    /* concentration nudges — same philosophy as the picks guard */
+    const warn = [];
+    rows.forEach(({p, c}) => {
+      const w = totVal ? (c.value != null ? c.value : c.invested) / totVal * 100 : 0;
+      const saf = spotSafety(p.sym);
+      if (saf.tier === "SPECULATIVE" && rs.capital && c.invested > rs.capital * 0.02)
+        warn.push(`🟠 ${p.name} is speculative and above 2% of capital — that whole position is the risk.`);
+      else if (w > 25) warn.push(`⚠ ${p.name} is ${w.toFixed(0)}% of the portfolio — one asset shouldn't be able to ruin the month.`);
+    });
+    const cryptoW = rows.filter(({p}) => (INSTR[p.sym] || {}).cls === "crypto")
+      .reduce((a, {c}) => a + (c.value != null ? c.value : c.invested), 0);
+    if (totVal && cryptoW / totVal > 0.35)
+      warn.push(`⚠ Crypto is ${(cryptoW/totVal*100).toFixed(0)}% of the portfolio — it moves as one block on bad days; consider the 25–30% cap from the Risk tab.`);
+    warn.forEach(w => { const d = el("div", "conf", w); d.style.color = "var(--warn)"; box.appendChild(d); });
+  }
+
+  if ((pd.realized || []).length) {
+    box.appendChild(el("h3", "dh3", "Closed positions"));
+    pd.realized.slice(-15).reverse().forEach(r => {
+      box.appendChild(el("div", "dp",
+        `${r.pnl >= 0 ? "✅" : "❌"} ${r.name} — realised ${r.pnl >= 0 ? "+" : "−"}$${Math.abs(r.pnl).toLocaleString(undefined, {maximumFractionDigits: 0})} · ${new Date(r.t).toLocaleDateString("en-GB")}`));
+    });
+  }
+}
+
+/* ---- spot-mode checkbox: persist + rerender ---- */
+(function () {
+  const cb = $("#spotmode");
+  if (!cb) return;
+  const saved = lsGet("tcc_spotmode", null);
+  if (saved !== null) cb.checked = !!saved;
+  cb.addEventListener("change", () => { lsSet("tcc_spotmode", cb.checked); renderPicks(); });
+})();
+
+/* keep portfolio P&L fresh while the tab is open */
+setInterval(() => { if (portView) renderPort(); }, 60000);
+
+/* ============ SCROLL-REVEAL ANIMATIONS ============ */
+(function () {
+  if (typeof IntersectionObserver === "undefined" ||
+      typeof MutationObserver === "undefined") return;
+  let reduce = false;
+  try { reduce = matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+  if (reduce) return;
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(en => {
+      if (en.isIntersecting) { en.target.classList.add("vis"); io.unobserve(en.target); }
+    });
+  }, {threshold: 0.06, rootMargin: "0px 0px -30px 0px"});
+  const arm = root => {
+    if (!root.querySelectorAll) return;
+    root.querySelectorAll(".panel, .pick, .strat, .alert").forEach(n => {
+      if (n.dataset.rv) return;
+      n.dataset.rv = "1";
+      /* skip animation inside the detail overlay — it has its own */
+      if (n.closest && n.closest(".ovl")) return;
+      n.classList.add("reveal");
+      io.observe(n);
+    });
+  };
+  arm(document);
+  new MutationObserver(muts => {
+    muts.forEach(m => m.addedNodes && m.addedNodes.forEach(n => {
+      if (n.nodeType === 1) {
+        if (n.matches && n.matches(".panel,.pick,.strat,.alert")) arm(n.parentNode || document);
+        else arm(n);
+      }
+    }));
+  }).observe(document.body, {childList: true, subtree: true});
+})();
 </script></body></html>
