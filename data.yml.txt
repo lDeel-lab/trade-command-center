@@ -1,0 +1,98 @@
+name: Dashboard data refresh
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"   # every 15 min (GitHub may add a few minutes' jitter)
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths-ignore: ["state/**"]   # first deploy runs automatically on upload
+
+permissions:
+  contents: write     # journal state is committed back to the repo
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-data
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Restore daily fundamentals cache
+        id: fundcache
+        uses: actions/cache@v4
+        with:
+          path: site/data/fundamentals.json
+          key: fundamentals-${{ github.run_id }}
+          restore-keys: fundamentals-
+      - name: Build fundamentals (only if missing or stale >20h)
+        run: |
+          python - <<'EOF'
+          import json, os, subprocess, time
+          p = "site/data/fundamentals.json"
+          stale = True
+          if os.path.exists(p):
+              try:
+                  j = json.load(open(p))
+                  stale = (time.time()*1000 - j.get("generated", 0)) > 20*3600*1000
+                  if not stale:   # also rebuild when new instruments joined the universe
+                      from universe import all_instruments
+                      have = set(j.get("instruments", {}))
+                      missing = [i["id"] for i in all_instruments() if i["id"] not in have]
+                      if missing:
+                          print(f"{len(missing)} instruments lack fundamentals - rebuilding")
+                          stale = True
+              except Exception:
+                  pass
+          if stale:
+              subprocess.run(["python", "build_fundamentals.py"], check=True)
+          else:
+              print("fundamentals fresh — skipping")
+          EOF
+      - name: Build market data
+        run: python build_markets.py
+      - name: Build tagged news
+        run: python build_news.py
+      - name: Build economic calendar
+        run: python build_calendar.py || echo "calendar feed unavailable this run"
+      - name: Trade journal + signal alerts
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AI_MODEL: ${{ vars.AI_MODEL }}
+          AI_WEB_SEARCH: ${{ vars.AI_WEB_SEARCH }}
+        run: node journal.js || echo "journal step failed — site still deploys"
+      - name: Commit journal state
+        run: |
+          git config user.name "journal-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add state/journal.json || true
+          git diff --cached --quiet || git commit -m "journal: update [skip ci]"
+          git pull --rebase origin ${GITHUB_REF_NAME} || true
+          git push || true
+      - name: Assemble site
+        run: cp dashboard.html site/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

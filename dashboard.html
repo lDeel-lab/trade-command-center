@@ -704,6 +704,10 @@ footer{margin-top:22px;color:var(--muted);font-size:11.5px;border-top:1px solid 
   <div class="panel" id="portbox"></div>
 </section>
 
+<section id="view-cal" hidden>
+  <div class="panel" id="calbox"></div>
+</section>
+
 <section id="view-rot" hidden>
   <div class="panel" id="rotbox"></div>
 </section>
@@ -872,6 +876,18 @@ async function loadNews() {
     NEWS.items = j.items || []; NEWS.generated = j.generated; NEWS.err = null;
   } catch (e) {
     NEWS.err = "News unavailable: " + e.message;
+  }
+}
+
+const CAL = {events: [], generated: 0, err: null};
+async function loadCalendar() {
+  try {
+    const r = await fetch(DATA_BASE + "calendar.json", {cache: "no-store"});
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const j = await r.json();
+    CAL.events = j.events || []; CAL.generated = j.generated; CAL.err = null;
+  } catch (e) {
+    CAL.err = "Calendar unavailable: " + e.message;
   }
 }
 
@@ -1859,12 +1875,23 @@ const big = v => v == null ? "—" :
 
 function renderFundamentalsEquity(sym, name) {
   const wrap = el("div");
-  wrap.appendChild(el("h3", "dh3", "Fundamentals"));
+  wrap.appendChild(el("h3", "dh3", "What is " + name + "? — fundamentals"));
   const f = FUNDX[sym];
   const meta = INSTR[sym] || {};
+  /* identity line always shows, even before fundamentals load */
+  const idBits = [
+    meta.cls === "stock" ? "Stock" : meta.cls === "index" ? "Equity index" :
+      meta.cls === "fx" ? "Currency pair" : meta.cls === "commodity" ? "Commodity" : "",
+    meta.sector ? "🏷 " + meta.sector + " sector" : "",
+    meta.region ? "🌍 " + meta.region : "",
+    meta.ig ? "tradeable on IG" : "IBKR/Revolut (not IG)",
+  ].filter(Boolean).join(" · ");
+  const idLine = el("p", "dp", idBits);
+  idLine.style.fontWeight = "600";
+  wrap.appendChild(idLine);
   if (!f) {
     wrap.appendChild(el("p", "dp",
-      "Fundamental data not loaded — it ships with the hosted (GitHub Pages) build."));
+      "Full description and numbers load with the hosted (GitHub Pages) build — refreshed daily."));
     return wrap;
   }
   if (f.desc) wrap.appendChild(el("p", "dp", f.desc));
@@ -1956,7 +1983,7 @@ let account = 10000, riskPct = 1;
 
 /* universe tab bar (News is a pseudo-tab) */
 let logicView = false, perfView = false, rotView = false,
-    learnView = false, riskView = false, portView = false, archView = false;
+    learnView = false, riskView = false, portView = false, archView = false, calView = false;
 function renderUniTabs() {
   const bar = $("#unitabs");
   bar.textContent = "";
@@ -1964,6 +1991,7 @@ function renderUniTabs() {
   UNIVERSES.concat([{key: "__rot", label: "🧭 Rotation"},
                     {key: "__port", label: "💼 Portfolio"},
                     {key: "__risk", label: "🧮 Risk"},
+                    {key: "__cal", label: "📅 Calendar"},
                     {key: "__news", label: "📰 News"},
                     {key: "__perf", label: "📊 Performance"},
                     {key: "__learn", label: "📚 Learn"},
@@ -1972,7 +2000,7 @@ function renderUniTabs() {
     if (u.key === "__rot") bar.appendChild(el("div", "navlabel", "Tools"));
     const b = el("button", null, u.label);
     b.type = "button";
-    const anyV = newsView || logicView || perfView || rotView || learnView || riskView || portView || archView;
+    const anyV = newsView || logicView || perfView || rotView || learnView || riskView || portView || archView || calView;
     const sel = u.key === "__news" ? newsView :
       u.key === "__logic" ? logicView :
       u.key === "__perf" ? perfView :
@@ -1981,13 +2009,15 @@ function renderUniTabs() {
       u.key === "__risk" ? riskView :
       u.key === "__port" ? portView :
       u.key === "__arch" ? archView :
+      u.key === "__cal" ? calView :
       (!anyV && activeUni === u.key);
     b.setAttribute("aria-selected", sel ? "true" : "false");
     b.addEventListener("click", async () => {
-      newsView = logicView = perfView = rotView = learnView = riskView = portView = archView = false;
+      newsView = logicView = perfView = rotView = learnView = riskView = portView = archView = calView = false;
       if (u.key === "__news") newsView = true;
       else if (u.key === "__logic") logicView = true;
       else if (u.key === "__arch") archView = true;
+      else if (u.key === "__cal") { calView = true; renderUniTabs(); renderCal(); return; }
       else if (u.key === "__learn") learnView = true;
       else if (u.key === "__perf") perfView = true;
       else if (u.key === "__risk") { riskView = true; renderUniTabs(); renderRisk(); return; }
@@ -2005,7 +2035,7 @@ function renderUniTabs() {
     });
     bar.appendChild(b);
   });
-  const any = newsView || logicView || perfView || rotView || learnView || riskView || portView || archView;
+  const any = newsView || logicView || perfView || rotView || learnView || riskView || portView || archView || calView;
   $("#view-market").hidden = any;
   $("#view-news").hidden = !newsView;
   $("#view-logic").hidden = !logicView;
@@ -2015,6 +2045,7 @@ function renderUniTabs() {
   $("#view-risk").hidden = !riskView;
   $("#view-port").hidden = !portView;
   $("#view-arch").hidden = !archView;
+  $("#view-cal").hidden = !calView;
 }
 
 /* ============ ROTATION TAB ============ */
@@ -2174,7 +2205,7 @@ function renderPerf() {
 function showUniState() {
   const box = $("#unierr");
   const st = UNI_STATE[activeUni];
-  const anyV = newsView || logicView || perfView || rotView || learnView || riskView || portView || archView;
+  const anyV = newsView || logicView || perfView || rotView || learnView || riskView || portView || archView || calView;
   if (anyV) { box.style.display = "none"; return; }
   if (!newsView && activeUni !== "crypto" && st && st.err) {
     box.style.display = "block"; box.textContent = "ℹ " + st.err;
@@ -2265,6 +2296,20 @@ function renderPicks() {
   if (shortsHidden)
     box.appendChild(el("div", "legend",
       `🪙 Spot mode: ${shortsHidden} short setup${shortsHidden > 1 ? "s" : ""} hidden — you can't short spot. Untick to see them (IG spread bets can go short).`));
+  /* event gate (lite): warn before entries near high-impact economic releases */
+  if (typeof upcomingHigh === "function") {
+    const evs = upcomingHigh(90 * 60e3).slice(0, 3);
+    if (evs.length) {
+      const w = el("div", "conf",
+        "📅 High-impact event " + evs.map(e => {
+          const mins = Math.round((e.t - Date.now()) / 60e3);
+          return `${e.country} ${e.title} ${mins >= 0 ? "in " + mins + " min" : Math.abs(mins) + " min ago"}`;
+        }).join(" · ") +
+        " — spreads widen and whipsaws are common around releases; entering right before one is gambling on a coin flip. Details in the 📅 Calendar tab.");
+      w.style.color = "var(--warn)"; w.style.marginBottom = "8px";
+      box.appendChild(w);
+    }
+  }
   /* correlation / heat guard: clustered same-direction picks are ONE bet */
   const shown = list.slice(0, 8), buckets = {};
   shown.forEach(m => {
@@ -3042,6 +3087,7 @@ async function boot() {
   loadFundamentalsX();     // equities fundamentals from the backend
   loadNews().then(() => { lastNewsFetch = Date.now(); renderNewsView(); });
   loadJournal().then(renderPerf);
+  loadCalendar().then(() => { renderCal(); renderPicks(); });
   // initial crypto load: fast TFs first so the matrix fills progressively
   for (const tf of TFS) {
     await refreshTf(tf);
@@ -3066,6 +3112,7 @@ async function boot() {
     if (now - lastNewsFetch > 300e3) {
       loadNews().then(() => { lastNewsFetch = Date.now(); renderNewsView(); });
       loadJournal().then(renderPerf);
+      loadCalendar().then(renderCal);
     }
     renderAll();
   }, 30000);
@@ -3669,4 +3716,111 @@ function tradeFlowEl(plan, dir) {
   });
   apply();
 })();
+
+/* ============ 📅 ECONOMIC CALENDAR ============ */
+function upcomingHigh(windowMs) {
+  const now = Date.now();
+  return (CAL.events || []).filter(e => e.impact === "High" &&
+    e.t > now - 20 * 60e3 && e.t - now < windowMs);
+}
+const CCY_FLAG = {USD: "🇺🇸", EUR: "🇪🇺", GBP: "🇬🇧", JPY: "🇯🇵", CNY: "🇨🇳",
+  AUD: "🇦🇺", NZD: "🇳🇿", CAD: "🇨🇦", CHF: "🇨🇭", ALL: "🌍"};
+let calImpact = "HM", calCcy = "ALL";
+function renderCal() {
+  if (typeof calView === "undefined" || !calView) return;
+  const box = $("#calbox");
+  box.textContent = "";
+  box.appendChild(el("h2", null, "📅 Economic calendar — this week & next, in UK time"));
+  if (CAL.err && !(CAL.events || []).length) {
+    box.appendChild(el("p", "dp", "ℹ " + CAL.err +
+      " — the calendar ships with the hosted build and refreshes every 15 minutes."));
+    return;
+  }
+  box.appendChild(el("p", "dp",
+    "Why you care: markets move on the SURPRISE — the gap between the number released and the " +
+    "forecast. A 'good' number that everyone expected does nothing; a small miss can move everything. " +
+    "🔴 High-impact events (CPI, jobs, rate decisions) routinely whip prices both ways within minutes — " +
+    "the picks list warns you when one is close."));
+
+  /* filter chips */
+  const bar = el("div", "subtabs");
+  const mk = (key, label, group) => {
+    const b = el("button", null, label);
+    b.type = "button";
+    const on = group === "imp" ? calImpact === key : calCcy === key;
+    b.setAttribute("aria-selected", on ? "true" : "false");
+    b.addEventListener("click", () => {
+      if (group === "imp") calImpact = key; else calCcy = key;
+      renderCal();
+    });
+    bar.appendChild(b);
+  };
+  mk("H", "🔴 High only", "imp"); mk("HM", "🟠 High + Medium", "imp"); mk("ALL", "All events", "imp");
+  const ccys = ["ALL", ...new Set((CAL.events || []).map(e => e.country).filter(Boolean))];
+  ccys.slice(0, 10).forEach(c => mk(c, (CCY_FLAG[c] || "") + " " + (c === "ALL" ? "All regions" : c), "ccy"));
+  box.appendChild(bar);
+
+  const now = Date.now();
+  const next = upcomingHigh(72 * 3600e3).filter(e => e.t > now)[0];
+  if (next) {
+    const mins = Math.round((next.t - now) / 60e3);
+    const d = el("div", "conf",
+      `⏰ Next high-impact event: ${CCY_FLAG[next.country] || ""} ${next.country} ${next.title} — ` +
+      (mins < 90 ? `in ${mins} minutes` :
+        mins < 48 * 60 ? `in ${Math.round(mins / 60)} hours` :
+        `in ${Math.round(mins / 1440)} days`) +
+      (next.forecast ? ` · forecast ${next.forecast} (previous ${next.previous || "—"})` : ""));
+    d.style.cssText = "font-weight:700;color:var(--warn);margin:4px 0 10px";
+    box.appendChild(d);
+  }
+
+  /* events grouped by day */
+  const list = (CAL.events || []).filter(e =>
+    (calImpact === "ALL" || (calImpact === "H" ? e.impact === "High" :
+      e.impact === "High" || e.impact === "Medium")) &&
+    (calCcy === "ALL" || e.country === calCcy) &&
+    e.t > now - 12 * 3600e3);
+  if (!list.length) {
+    box.appendChild(el("p", "dp", "No events match these filters in the coming days."));
+    return;
+  }
+  const dayKey = t => new Date(t).toLocaleDateString("en-GB",
+    {weekday: "long", day: "numeric", month: "short"});
+  const todayKey = dayKey(now);
+  let curDay = null, tbl = null;
+  const impDot = i => i === "High" ? "🔴" : i === "Medium" ? "🟠" :
+    i === "Holiday" ? "🏖" : "⚪";
+  list.slice(0, 120).forEach(e => {
+    const dk = dayKey(e.t);
+    if (dk !== curDay) {
+      curDay = dk;
+      const h = el("h3", "dh3", dk + (dk === todayKey ? "  ·  TODAY" : ""));
+      if (dk === todayKey) h.style.color = "var(--s2)";
+      box.appendChild(h);
+      tbl = el("table", "ticket");
+      const hr = el("tr");
+      ["Time (UK)", "", "Event", "Forecast", "Previous"].forEach(x => {
+        const td = el("td", null, x); td.style.color = "var(--muted)"; hr.appendChild(td);
+      });
+      tbl.appendChild(hr);
+      box.appendChild(tbl);
+    }
+    const tr = el("tr");
+    const past = e.t < now;
+    [new Date(e.t).toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"}),
+     impDot(e.impact) + " " + (CCY_FLAG[e.country] || "") + e.country,
+     e.title, e.forecast || "—", e.previous || "—",
+    ].forEach((v, i) => {
+      const td = el("td", null, v);
+      if (past) td.style.opacity = ".45";
+      if (i === 2 && e.impact === "High") td.style.fontWeight = "700";
+      tr.appendChild(td);
+    });
+    tbl.appendChild(tr);
+  });
+  box.appendChild(el("div", "legend",
+    "🔴 High = can move markets instantly (CPI, jobs, central-bank decisions) · 🟠 Medium · ⚪ Low · 🏖 holiday (thin liquidity). " +
+    "Forecast = what economists expect; Previous = last reading. Source: ForexFactory's free weekly feed " +
+    "(same events and times as Investing.com, which has no free data feed). Refreshed every 15 minutes; times shown in your local (UK) timezone."));
+}
 </script></body></html>
